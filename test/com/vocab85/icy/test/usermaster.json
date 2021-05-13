@@ -1,0 +1,69 @@
+{
+    "username": "2006234814",
+    "userid": "1",
+    "plugins": {
+        "flowers": {
+            "render": true,
+            "iconset": [{
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/snowflake%20(1).svg",
+                    "width": "18",
+                    "height": ""
+                }, {
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/cherry-blossom%20(2).svg",
+                    "width": "18",
+                    "height": ""
+                }, {
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/sakura%20(2).svg",
+                    "width": "18",
+                    "height": ""
+                }, {
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/heart.svg",
+                    "width": "18",
+                    "height": ""
+                }, {
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/cherry-blossom.svg",
+                    "width": "18",
+                    "height": ""
+                }, {
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/pawprint.svg",
+                    "width": "18",
+                    "height": ""
+                }, {
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/sakura%20(2).svg",
+                    "width": "18",
+                    "height": ""
+                }, {
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/cherry-blossom%20(1).svg",
+                    "width": "18",
+                    "height": ""
+                }, {
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/snowflake.svg",
+                    "width": "18",
+                    "height": ""
+                }, {
+                    "src": "https://cdn.jsdelivr.net/gh/askask11/ICYPlugins@master/Images/sakura.svg",
+                    "width": "18",
+                    "height": ""
+                }]
+        },
+        "statcard": {
+            "render": false,
+            "icon1": {
+                "src": "https://cdn.jsdelivr.net/gh/askask11/files@main/log-in.svg",
+                "width": "50"
+            },
+            "icon2": {
+                "src": "https://cdn.jsdelivr.net/gh/askask11/files@main/sendmail.svg",
+                "width": "25"
+            },
+            "icon3": {
+                "src": "https://cdn.jsdelivr.net/gh/askask11/files@main/getmail.svg",
+                "width": "50"
+            },
+            "icon4": {
+                "src": "https://cdn.jsdelivr.net/gh/askask11/files@main/exchange.svg",
+                "width": "50"
+            }
+        }
+    }
+}
