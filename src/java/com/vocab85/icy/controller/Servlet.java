@@ -9,8 +9,8 @@ import cn.hutool.core.net.multipart.MultipartFormData;
 import cn.hutool.core.net.multipart.UploadFile;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.core.util.URLUtil;
 import cn.hutool.extra.servlet.ServletUtil;
+import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.aliyun.oss.OSSException;
@@ -18,7 +18,6 @@ import com.vocab85.icy.model.User;
 import com.vocab85.icy.network.AliOSS;
 import com.vocab85.icy.network.DBAccess;
 import com.vocab85.icy.network.ICYWebCommunicator;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
@@ -41,7 +40,9 @@ import javax.servlet.http.HttpSession;
  */
 @WebServlet(name = "Servlet", urlPatterns =
 {
-    "/index", "/login", "/ManagePanel", "/doLogin", "/logout", "/verifyIcy", "/SavePluginSettings", "/UpFile", "/GetTimeout", "/DeleteFile", "/DeregisterICY"
+    "/index", "/login", "/ManagePanel", "/doLogin", "/logout", "/verifyIcy",
+    "/SavePluginSettings", "/UpFile", "/GetTimeout", "/DeleteFile", "/DeregisterICY",
+    "/SearchCards"
 })
 public class Servlet extends HttpServlet
 {
@@ -156,6 +157,9 @@ public class Servlet extends HttpServlet
                 break;
             case "/DeleteFile":
                 processDeleteFilePOST(request, response);
+                break;
+            case "/SearchCards":
+                processSearchCardsPOST(request, response);
                 break;
             default:
                 processRequest(request, response);
@@ -467,6 +471,39 @@ public class Servlet extends HttpServlet
         } 
     }
 
+    protected void processSearchCardsPOST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+        User user = (User)session.getAttribute("user");
+        JSONObject jsonr = JSONUtil.createObj();
+        JSONObject requestJSON = JSONUtil.parseObj(ServletUtil.getBody(request));
+        try(PrintWriter pw = response.getWriter())
+        {
+            if(user==null)
+            {
+                processStatus(jsonr, "You must login first to use this application", "NoLogin", 400, response);
+                jsonr.write(pw);
+                return;
+            }
+            
+            if(requestJSON.isEmpty())
+            {
+                processStatus(jsonr, "You cannot post EMPTY data", "NoData", 400, response);
+                jsonr.write(pw);
+                return;
+            }
+            //get the user id from the request.
+            String userId = requestJSON.getStr("userId");
+            //get the card JSON from the crawler.
+            JSONObject result = ICYWebCommunicator.getPostcardPicWithUser(user.getIcyid(), userId);
+            //return the data.
+            processOK(jsonr, result, response);
+            
+            jsonr.write(pw);
+            
+        }
+       
+    }
     /*
      protected void process<>GET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {

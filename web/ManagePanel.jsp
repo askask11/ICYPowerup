@@ -46,17 +46,36 @@
             {
                 background-color: dodgerblue;
             }
-            .preview-img
-            {
 
-
-            }
 
             .preview-img-container
             {
                 overflow: scroll;
                 max-width: 300px;
                 max-height: 300px;
+            }
+
+            .search-friend-container
+            {
+
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                align-items: center;
+
+            }
+
+            .search-friend-caption
+            {
+                margin-top: 16px;
+
+            }
+
+            .colParent
+            {
+
+                margin-bottom: 30px;
             }
         </style>
         <link rel="stylesheet" href="css/switch.css"/>
@@ -427,15 +446,35 @@
 
                     <div id="menu1" class="container tab-pane fade"><br>
 
+                        
                         <!--通过片友搜图-->
                         <label for="puy">
                             输入片友的主页链接：
                         </label>
-                        <div class="input-group"><input type="text" class="form-control" id="friendurl" placeholder="https://www.icardyou.icu/userInfo/homePage?userId=xxxxx" disabled>
-                            <button class="btn btn-primary" onclick="Swal.fire('敬请期待：一键智能防重', '该功能可以一键显示你和某位片友所有发过的片和图片，无需登录后在自己的片目录里面一个一个查找，摆脱繁琐，提高效率，达到防重的目的。此功能正在加班开发中，敬请期待。', 'info');">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="friendurl" placeholder="https://www.icardyou.icu/userInfo/homePage?userId=xxxxx" autocomplete="on" >
+                            <select id="searchFilter">
+                                <option value="1" selected>
+                                    发
+                                </option>
+                                <option value="2">
+                                    收
+                                </option>
+                                <option value="3">
+                                    收/发
+                                </option>
+                            </select>
+                            <button class="btn btn-primary" onclick="submitSearchCardClick();">
                                 查找
                             </button></div>
-
+                        <br>
+                        <p>
+                            这是<span id="sender"></span>和<span id="xhbid">这位小伙伴</span>寄过的片(已上传照片的)：
+                        </p>
+                        <hr>
+                        <div id="pylink" class="text-center">
+                            
+                        </div>
 
                     </div>
                     <!--<div id="menu2" class="container tab-pane fade"><br>
@@ -950,8 +989,8 @@
                 }, "json").fail((xhr) => {
                     //handle server error
                     Swal.fire("服务器错误", "未知的错误，请反馈", "error");
-                     $("#va1").fadeToggle();
-                $("#va2").fadeToggle();
+                    $("#va1").fadeToggle();
+                    $("#va2").fadeToggle();
                 });
 
 
@@ -1042,10 +1081,14 @@
                 checkTimeOut();
             });
         </script>
+        
+        
+        
         <script>
             //submit for search
-            function submitForSearch()
+            function submitSearchCardClick()
             {
+                
                 const inputtedurl = $("#friendurl")[0].value;
 
                 if (inputtedurl === "")
@@ -1071,8 +1114,88 @@
                     Swal.fire("主页URL不全,缺少userId", "", "warning");
                     return;
                 }
+                submitForSearch(userId);
+            }
+            
+            function submitForSearch(userId)
+            {
 
+                ///POST the data to the server
+                const parentDiv = document.getElementById("pylink");
+                parentDiv.innerHTML = '正在为您查找，请稍等！<br><br> <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>';//clear out previous things
+                var data = {"userId": userId, "mode":document.getElementById("searchFilter").value};
 
+                //TO DO complete xhr post server and return data process.
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "SearchCards");
+                xhr.onload = function () {
+                    parentDiv.innerHTML = "";
+                    if (xhr.status === 200)
+                    {
+                        var jsonr = JSON.parse(xhr.responseText);
+                        if (jsonr["code"] === "OK")
+                        {
+                            //do things
+                            var data = jsonr["data"]["list"];
+                            var sender = jsonr["data"]["sender"];
+                            var receiver = decodeURIComponent(jsonr["data"]["receiver"]);
+                            $("#sender").html(sender);
+                            $("#xhbid").html(receiver);
+                            var row = document.createElement("div");
+                            row.classList.add("row");
+                            for (var i = 0, maxi = data.length; i < maxi; i++)
+                            {
+                                var img = data[i];
+                                var colParent = document.createElement("div");
+                                var imgContainer = document.createElement("div");
+                                var imgElement = document.createElement("img");
+                                var imgComment = document.createElement("div");
+                                var imgCommentA = document.createElement("a");
+
+                                //set the image itself
+                                imgElement.crossorigin = "anonymous";
+                                imgElement.src = img["imgsrc"];
+                                imgElement.setAttribute("referrerpolicy", "no-referrer");
+                                imgElement.style.setProperty("width", "100%");
+                                imgElement.setAttribute("onclick", "window.open(this.src,'_blank');");
+                                //the Postcard ID
+                                imgCommentA.href = img["pcsrc"];
+                                imgCommentA.innerHTML = img["id"];
+                                imgCommentA.target = "_blank";
+                                imgComment.classList.add("search-friend-caption");
+                                imgComment.appendChild(imgCommentA);
+                                imgContainer.classList.add("search-friend-container");
+                                imgContainer.appendChild(imgElement);
+                                imgContainer.appendChild(imgComment);
+                                colParent.classList.add("col-md");
+                                colParent.classList.add("colParent")
+                                colParent.appendChild(imgContainer);
+                                row.appendChild(colParent);
+
+                                if ((i + 1) % 4 === 0 || i === maxi - 1)
+                                {
+                                    parentDiv.appendChild(row);
+                                    row = document.createElement("div");
+                                    row.classList.add("row");
+                                }
+
+                            }
+                        } else if (jsonr["code"] === "NoLogin") {
+                            Swal.fire("登录超时", "您的登录已超时，请重新登录！", "error");
+                        } else
+                        {
+                            Swal.fire("未知错误", "错误未知", "error");
+                        }
+
+                    }
+                };
+
+                xhr.onerror = function () {
+                    parentDiv.innerHTML = "";
+                    Swal.fire("未知错误", "错误未知", "error");
+                };
+
+                xhr.send(JSON.stringify(data));
             }
 
             function deregisterICY()
@@ -1095,6 +1218,8 @@
                     }
                 };
             }
+
+            //function 
         </script>
     </body>
 </html>
