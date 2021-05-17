@@ -1,0 +1,10 @@
+[{
+    "resultCode": 400,
+    "resultMessage": "<strong>确认失败!</strong> 请检查您输入的明信片ID是否正确，如果始终提示失败，请您登记挂失",
+    "resultBody": null
+},
+{
+    "resultCode": 200,
+    "resultMessage": "success",
+    "resultBody": "1138522;128153"
+}]

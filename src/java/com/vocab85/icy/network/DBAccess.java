@@ -61,7 +61,43 @@ public class DBAccess implements AutoCloseable
         return ps.executeUpdate();
     }
     
+    public String getIcyIdByUserId(int powerUpId) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("SELECT icyid FROM users WHERE users.id=?");
+        ResultSet rs = null;
+        ps.setInt(1, powerUpId);
+        rs = ps.executeQuery();
+        if(rs.next())
+        {
+            return rs.getString(1);
+        }
+        return null;
+    }
     
+    public boolean isUserHacks(String un, String pass) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("SELECT hacks FROM users WHERE username=? AND password=?");
+        ps.setString(1, un);
+        ps.setString(2, pass);
+        ResultSet rs = ps.executeQuery();
+        if(rs.next())
+        {
+            return rs.getBoolean(1);
+            
+        }
+        return false;
+    }
+    
+    public int insertHackR(String username, String pcid, String friend, String carddata) throws SQLException
+    {
+        PreparedStatement ps  = dbConn.prepareStatement("INSERT INTO hackcard VALUES(?,?,?,?)");
+        ps.setString(1, username);
+        ps.setString(2, pcid);
+        ps.setString(3, friend);
+        ps.setString(4, carddata);
+        return ps.executeUpdate();
+        
+    }
     
      
     public DBAccess()

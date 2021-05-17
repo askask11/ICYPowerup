@@ -10,9 +10,11 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
+import cn.hutool.http.Method;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import cn.hutool.setting.Setting;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.regex.Pattern;
@@ -77,103 +79,200 @@ public class ICYWebCommunicator
         HttpResponse resp = req.execute();
         Document document = Jsoup.parse(resp.body());
         Elements cardImageContainer = document.getElementsByClass("cardImg");
-        if(cardImageContainer.isEmpty())
+        if (cardImageContainer.isEmpty())
         {
             return new Elements();
         }
         return cardImageContainer.get(0).getElementsByTag("img");
     }
-    
-    
-   
 
-    public static JSONObject getPostcardPicWithUser(String icyid, String targetId)
+    private static void crawlAllPostcardsWithUser(String authCookie, String targetId, String pageNum, String mode, JSONArray jsonrarray)
     {
-        // From given id, visit the user's home page to get the user's username, to generate the URL.
-        String username = getUsernameByIcyId(icyid);
-        String receiver = getUsernameByIcyId(targetId);
-        
-        String cookie = "user-info=" + icyid + ";" + username + ";" + "2021-01-01;2;1;0"; // user cookie
-        // Create the JSONArray
-        JSONArray jsonrarray = JSONUtil.createArray();
-        JSONObject root = JSONUtil.createObj();
-        root.set("sender", username);
-        root.set("receiver", StrUtil.isEmpty(receiver)?"这位小伙伴":URLEncoder.createDefault().encode(receiver, Charset.forName("UTF-8")));
-        JSONObject jsonr;
+        //GO TO each page.
+        HttpRequest req = HttpUtil.createGet("https://www.icardyou.icu/sendpostcard/myPostCard/" + mode + "?status=&cardType=&nowPage=" + pageNum);
+        req.cookie(authCookie);//set user auth cookie
+        HttpResponse resp = req.execute();
+        Document document = Jsoup.parse(resp.body());
+        Elements trs = document.getElementsByTag("tr");//get all table rows of the "send postcard page"
+        for (int j = 1; j < trs.size(); j++)//skip the first row, it is the table header.
+        {
+            //get ONE row from the table
+            Element tr = trs.get(j);
+            //get the 4th column of the row, 
+            Element usernametd = tr.getElementsByTag("td").get(3);
+            //read the userid from href (<a> tag), which is the username.
+            String href = usernametd.getElementsByTag("a").attr("href");
+            //split the URI with the question mark, the query should only has the userId
+            String[] hrefrags = href.split(Pattern.quote("?"));
+            //replace the varible name part of user id, get the pure id.
+            String stuid = hrefrags[1].replace("userId=", "").trim();
+
+            //check if the user id is what we are looking for(target user)
+            //the condition of if to crawl the image of this postcard.
+            if (stuid.equals(targetId))
+            {
+                // Get the 
+                Element pcele
+                        = tr.getElementsByTag("td")// get all columns of table
+                                .get(1) // get the 2nd column (the postcard id)
+                                .getElementsByTag("a")// get the 1st element <a> tag of postcard id (should only have 1)
+                                .get(0);//the id of the card,
+
+                // Get the postcard ID of the cards
+                String pcid = pcele.html().trim();
+                // Get the URI to visit the postcard.
+                String pcurl = pcele.attr("href");
+                // make relative URI to absolute URL by adding the host
+                pcurl = "https://www.icardyou.icu" + pcurl;
+                // call the function to get all the pictures of the postcard.
+                Elements piclist = getPostcardPicURL(pcurl);
+                // Load all the images into the arraylist, each image is an indivisual object but share same ID
+                for (Element piclist1 : piclist)
+                {
+                    //create JSON object and put crawled data inside.
+                    JSONObject jsonr = JSONUtil.createObj();
+                    jsonr.set("id", pcid);
+                    jsonr.set("imgsrc", piclist1.attr("src"));
+                    jsonr.set("pcsrc", pcurl);
+                    jsonrarray.add(jsonr);
+                }
+
+            }
+
+        }
+    }
+
+    private static int getUserMaxPostcardPageNum(String cookie, String mode)
+    {
         // Try to visit the first page of user's send card, determine how many pages user has.
-        HttpRequest req = HttpUtil.createGet("https://www.icardyou.icu/sendpostcard/myPostCard/1?status=&cardType=&nowPage=1");
+        HttpRequest req = HttpUtil.createGet("https://www.icardyou.icu/sendpostcard/myPostCard/" + mode + "?status=&cardType=&nowPage=1");
         req.cookie(URLEncoder.createDefault().encode(cookie, Charset.forName("UTF-8")));
         HttpResponse resp = req.execute();
         Document document = Jsoup.parse(resp.body());//parse the document.
         // get the ">>" element, containing the URL for the last page of user.
         Element lastpage = document.getElementsByAttributeValue("title", "最后一页").get(0);
         // the last page is hidden in the URL of the button.
-        String href = lastpage.getElementsByTag("a").get(0).attr("href"); 
+        String href = lastpage.getElementsByTag("a").get(0).attr("href");
         int pageNum = getLastPageFromURI(href.split("&"));//Find the "lastpage" from the URI query.
-        
+        return pageNum;
+    }
+
+    private static void crawlAllPostcardsWithUser(String authCookie, String targetId, String mode, JSONArray jsonrarray)
+    {
+        int pageNum = getUserMaxPostcardPageNum(authCookie, mode);
         //GO TO Each page
         for (int i = 1; i <= pageNum; i++)
         {
-            //GO TO each page.
-            req = HttpUtil.createGet("https://www.icardyou.icu/sendpostcard/myPostCard/1?status=&cardType=&nowPage=" + i);
-            req.cookie(cookie);//set user auth cookie
-            resp = req.execute();
-            document = Jsoup.parse(resp.body());
-            Elements trs = document.getElementsByTag("tr");//get all table rows of the "send postcard page"
-            for (int j = 1; j < trs.size(); j++)//skip the first row, it is the table header.
-            {
-                //get ONE row from the table
-                Element tr = trs.get(j);
-                //get the 4th column of the row, 
-                Element usernametd = tr.getElementsByTag("td").get(3);
-                //read the userid from href (<a> tag), which is the username.
-                href = usernametd.getElementsByTag("a").attr("href");
-                //split the URI with the question mark, the query should only has the userId
-                String[] hrefrags = href.split(Pattern.quote("?"));
-                //replace the varible name part of user id, get the pure id.
-                String stuid = hrefrags[1].replace("userId=", "").trim();
-                
-                //check if the user id is what we are looking for(target user)
-                //the condition of if to crawl the image of this postcard.
-                if (stuid.equals(targetId))
-                {
-                    // Get the 
-                    Element pcele = 
-                            tr.getElementsByTag("td")// get all columns of table
-                            .get(1) // get the 2nd column (the postcard id)
-                            .getElementsByTag("a")// get the 1st element <a> tag of postcard id (should only have 1)
-                            .get(0);//the id of the card,
-                    
-                    // Get the postcard ID of the cards
-                    String pcid = pcele.html().trim();
-                    // Get the URI to visit the postcard.
-                    String pcurl = pcele.attr("href"); 
-                    // make relative URI to absolute URL by adding the host
-                    pcurl = "https://www.icardyou.icu" + pcurl; 
-                    // call the function to get all the pictures of the postcard.
-                    Elements piclist = getPostcardPicURL(pcurl); 
-                    // Load all the images into the arraylist, each image is an indivisual object but share same ID
-                    for (Element piclist1 : piclist)
-                    {
-                        //create JSON object and put crawled data inside.
-                        jsonr = JSONUtil.createObj();
-                        jsonr.set("id", pcid);
-                        jsonr.set("imgsrc", piclist1.attr("src"));
-                        jsonr.set("pcsrc", pcurl);
-                        jsonrarray.add(jsonr);
-                    }
-
-                }
-
-            }
+            crawlAllPostcardsWithUser(authCookie, targetId, Integer.toString(i), mode, jsonrarray);
         }
+    }
+
+    public static JSONObject getPostcardPicWithUser(String icyid, String targetId, int mode)
+    {
+        // From given id, visit the user's home page to get the user's username, to generate the URL.
+        String username = getUsernameByIcyId(icyid);
+        String receiver = getUsernameByIcyId(targetId);
+
+        String cookie = "user-info=" + icyid + ";" + username + ";" + "2021-01-01;2;1;0"; // user cookie
+        // Create the JSONArray
+        JSONArray jsonrarray = JSONUtil.createArray();
+        JSONObject root = JSONUtil.createObj();
+        root.set("sender", username);
+        root.set("receiver", StrUtil.isEmpty(receiver) ? "Ta" : URLEncoder.createDefault().encode(receiver, Charset.forName("UTF-8")));
+        switch (mode)
+        {
+            case 3:
+                crawlAllPostcardsWithUser(cookie, targetId, "1", jsonrarray);
+                crawlAllPostcardsWithUser(cookie, targetId, "2", jsonrarray);
+                break;
+            case 2:
+            case 1:
+                crawlAllPostcardsWithUser(cookie, targetId, Integer.toString(mode), jsonrarray);
+                break;
+
+        }
+
         root.set("list", jsonrarray);
         return root;
     }
 
-    public static void main(String[] args) throws IOException
+    public static JSONObject getCaptchaResult(String token, String userIp)
     {
-        System.out.println(getPostcardPicWithUser("32364", "38736").toStringPretty());
-        
+        HttpRequest request = HttpUtil.createPost("https://www.recaptcha.net/recaptcha/api/siteverify");
+        Setting setting = new Setting("captcha.setting");
+
+        request.form("secret", setting.getStr("key"));
+        request.form("response", token);
+        request.form("remoteip", userIp);
+
+        HttpResponse response = request.execute();
+
+        return JSONUtil.parseObj(response.body());
+    }
+
+    public static JSONArray searchUserByName(String name)
+    {
+        HttpRequest request = HttpUtil.createPost("https://www.icardyou.icu/search/userList");
+        HttpResponse response;
+        request.header("Referer", "https://www.icardyou.icu/games/gameList/1");
+        request.header("X-Requested-With", "XMLHttpRequest");
+        request.form("searchWords", name);
+        response = request.execute();
+        System.out.println("com.vocab85.icy.network.ICYWebCommunicator.searchUserByName()");
+        System.out.println("Response Body" + response.body());
+        System.out.println(response);
+        System.out.println(request);
+        return JSONUtil.parseArray(response.body());
+    }
+
+    public static int getFirstCardEverInICY() throws IOException, InterruptedException
+    {
+        for (int i = 1; i < 520; i++)
+        {
+            System.out.println("Trying #" + i + "");
+            HttpRequest r = HttpUtil.createRequest(Method.HEAD, "https://www.icardyou.icu/sendpostcard/postcardDetail/" + i);
+            HttpResponse rep = r.execute();
+            if (rep.isOk())
+            {
+                System.out.println("#" + i + " is working!");
+                return i;
+            } else
+            {
+                System.out.println("#" + i + " returns " + rep.getStatus());
+            }
+            Thread.sleep(500);
+        }
+        return 383;
+    }
+
+    public static String[] getCardInfo(String pcid)
+    {
+        String c = HttpUtil.downloadString("https://www.icardyou.icu/sendpostcard/postcardDetail/" + pcid, "UTF-8");
+        Document doc = Jsoup.parse(c);
+        return doc.getElementsByClass("panel-title").get(0).text().split(" ");//[明信片, 383, 已收到]
+    }
+
+    public static JSONObject registerCardForUser(String icyUserId, String cardId)
+    {
+        HttpRequest request = HttpUtil.createPost("https://www.icardyou.icu/sendpostcard/confirmReceive");
+        request.header("X-Requested-With", "XMLHttpRequest");
+        request.header("Origin", "https://www.icardyou.icu");
+        request.header("Referer", "https://www.icardyou.icu/sendpostcard/toReceive");
+        request.form("cardNO", cardId);
+        request.form("comment", "过期自助补登");
+        //System.out.println(request);
+        HttpResponse response = request.execute();
+        JSONObject json = JSONUtil.parseObj(response.body());
+//        System.out.println(json.toStringPretty());
+//        String m = json.getStr("resultMessage");
+//        int jj = json.getInt("resultCode");
+        return json;
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException
+    {
+        //System.out.println(getPostcardPicWithUser("32364", "38736").toStringPretty());
+        String pcid = "383";
+
     }
 }

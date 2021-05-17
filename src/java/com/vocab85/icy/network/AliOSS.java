@@ -8,6 +8,7 @@ package com.vocab85.icy.network;
 import cn.hutool.setting.Setting;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.ObjectMetadata;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -70,11 +71,17 @@ public class AliOSS
         ossClient.shutdown();
     }
     
+    public static OSSObject getUserMasterJSON(String userid)
+    {
+        OSS ossclient = getOssClient();
+        OSSObject oo = ossclient.getObject(oss_creds.get("bucket"), "usercontent/"+userid.charAt(0)+"/"+userid+"/master.json");
+        return oo;
+    }
+    
     //public static void upl
 
     public static void main(String[] args) throws MalformedURLException, IOException
     {
-       URL url = new URL("https://icyfile.85vocab.com/usercontent/1/1/uploads/ypruc184958.jpg");
-        System.out.println(url.getFile());
+        
     }
 }

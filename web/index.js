@@ -30,6 +30,10 @@
         for (var i = 0, maxi = iconset.length; i < maxi; i++)
         {
             var imageObj = iconset[i] // get the object of the image from image array
+            if(imageObj["render"]===false)
+            {
+                continue;
+            }
             // var imageWidth = 18;
             var imageDivDOM = document.createElement("div") // the div which to hold the image
             var imageDOM = document.createElement("img") // the image itself
@@ -240,7 +244,20 @@
         $(".text-info")[1].appendChild(root_table);
     }
 
-
+    function initAutoRegisteration(data,userId)
+    {
+        if(data===undefined||!data["render"])
+        {
+            return;
+        }
+       
+        var s = document.createElement("script");
+        s.src="https://icyfile.85vocab.com/public/AutoRegister.js";
+        s.setAttribute("data-powerupid",userId);
+        
+        $("head")[0].appendChild(s);
+     
+    }
     ////////////////////////////MAIN MASTER//////////////////////////
 
     var xhr = new XMLHttpRequest();
@@ -262,6 +279,9 @@
                     break;
                 case "statcard":
                     initProfile(plugins[pluginname]);
+                    break;
+                case "autoRegister":
+                    initAutoRegisteration(plugins[pluginname],userid);
                     break;
                 default :
                     console.log("Not supported" + pluginname);
