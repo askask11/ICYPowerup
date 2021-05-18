@@ -34,7 +34,7 @@ public class ICYWebCommunicator
     public static boolean verifyUserTag(String powerupid, String userId) throws IOException
     {
         System.clearProperty("javax.net.ssl.trustStore");
-        System.out.println(System.getProperty("javax.net.ssl.trustStore"));
+       // System.out.println(System.getProperty("javax.net.ssl.trustStore"));
         String url = "https://www.icardyou.icu/userInfo/homePage?userId=" + userId;
         String content = HttpUtil.downloadString(url, "UTF-8");
         Document document = Jsoup.parse(content);
@@ -149,8 +149,15 @@ public class ICYWebCommunicator
         req.cookie(URLEncoder.createDefault().encode(cookie, Charset.forName("UTF-8")));
         HttpResponse resp = req.execute();
         Document document = Jsoup.parse(resp.body());//parse the document.
+        //System.out.println(resp.body());
         // get the ">>" element, containing the URL for the last page of user.
-        Element lastpage = document.getElementsByAttributeValue("title", "最后一页").get(0);
+        
+        Elements lastpageElementset = document.getElementsByAttributeValue("title", "最后一页");
+        if(lastpageElementset.size()<1)
+        {
+            return 1;
+        }
+        Element lastpage = lastpageElementset.first();
         // the last page is hidden in the URL of the button.
         String href = lastpage.getElementsByTag("a").get(0).attr("href");
         int pageNum = getLastPageFromURI(href.split("&"));//Find the "lastpage" from the URI query.
@@ -177,7 +184,7 @@ public class ICYWebCommunicator
         // Create the JSONArray
         JSONArray jsonrarray = JSONUtil.createArray();
         JSONObject root = JSONUtil.createObj();
-        root.set("sender", username);
+        root.set("sender", URLEncoder.createDefault().encode(username, Charset.forName("UTF-8")));
         root.set("receiver", StrUtil.isEmpty(receiver) ? "Ta" : URLEncoder.createDefault().encode(receiver, Charset.forName("UTF-8")));
         switch (mode)
         {
@@ -218,10 +225,10 @@ public class ICYWebCommunicator
         request.header("X-Requested-With", "XMLHttpRequest");
         request.form("searchWords", name);
         response = request.execute();
-        System.out.println("com.vocab85.icy.network.ICYWebCommunicator.searchUserByName()");
+       /* System.out.println("com.vocab85.icy.network.ICYWebCommunicator.searchUserByName()");
         System.out.println("Response Body" + response.body());
         System.out.println(response);
-        System.out.println(request);
+        System.out.println(request);*/
         return JSONUtil.parseArray(response.body());
     }
 

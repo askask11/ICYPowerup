@@ -22,7 +22,7 @@
                 我们刚刚向您的邮箱发送了一个验证码，
                 <form target="_self" action="Register2" method="POST">
                     <label for="vi">请输入邮箱验证码：</label>
-                    <input id="vi" type="text" size="6" name="verify"> 
+                    <input id="vi" required type="text" size="6" name="verify"> 
                     <button type="submit">
                         提交
                     </button>

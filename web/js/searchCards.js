@@ -185,7 +185,7 @@ function submitForSearch(userId, token = "", captcha = "")
             {
                 //do things
                 var data = jsonr["data"]["list"];
-                var sender = jsonr["data"]["sender"];
+                var sender = decodeURIComponent(jsonr["data"]["sender"]);
                 var receiver = decodeURIComponent(jsonr["data"]["receiver"]);
                 $("#sender").html(sender);
                 $("#xhbid").html(receiver);

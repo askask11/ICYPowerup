@@ -41,7 +41,7 @@
             #registerFrame{
                 width:80%; 
                 border:0px;
-                height:120px;
+                height:160px;
             }
         </style>
         ${user==null?"":"<meta http-equiv='refresh' content='0; url=ManagePanel'>"}
@@ -123,7 +123,7 @@
 
 
                 <div id="registerVerifyArea" style="display:none;">
-                    请根据提示完成操作：
+                    
                     <iframe id="registerFrame" name="registerFrame" src="registerpre.html" onload="registerFrameOnLoad()">
 
                     </iframe>

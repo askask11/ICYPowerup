@@ -31,7 +31,7 @@
         <c:if test="${redo}">
             <form action="Register2" method="POST">
                 重新输入邮箱验证码：
-                <input id="vi" type="text" size="6" name="verify"> 
+                <input id="vi" required type="text" size="6" name="verify"> 
                 <button type="submit">
                     提交
                 </button>
