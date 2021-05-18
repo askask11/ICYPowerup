@@ -24,6 +24,28 @@ public class DBAccess implements AutoCloseable
 {
     private Connection dbConn;
     
+    
+    public boolean isUserExists(String email) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("SELECT COUNT(*) FROM users WHERE email=?");
+        ps.setString(1, email);
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        return rs.getInt(1)>0;
+    }
+    
+    public int addUser(int id, String username, String password, String email) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("INSERT INTO users VALUES (?,?,?,?,?,?,?)");
+        ps.setInt(1, id);
+        ps.setString(2, username);
+        ps.setString(3, password);
+        ps.setString(4, email);
+        ps.setNull(5, java.sql.Types.VARCHAR);
+        ps.setNull(6, java.sql.Types.VARCHAR);
+        ps.setBoolean(7, false);
+        return ps.executeUpdate();
+    }
      
     public User getUser(String username, String password) throws SQLException
     {

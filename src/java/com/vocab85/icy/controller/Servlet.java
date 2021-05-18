@@ -21,6 +21,7 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.aliyun.oss.OSSException;
 import com.aliyun.oss.model.OSSObject;
+import com.vocab85.icy.model.MailUtilBetter;
 import com.vocab85.icy.model.User;
 import com.vocab85.icy.network.AliOSS;
 import com.vocab85.icy.network.DBAccess;
@@ -33,10 +34,12 @@ import java.net.URL;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
+import javax.mail.MessagingException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -52,7 +55,8 @@ import javax.servlet.http.HttpSession;
 {
     "/index", "/login", "/ManagePanel", "/doLogin", "/logout", "/verifyIcy",
     "/SavePluginSettings", "/UpFile", "/GetTimeout", "/DeleteFile", "/DeregisterICY",
-    "/SearchCards", "/Captcha", "/SearchId", "/RegisterExpiredCards","/Hacks","/Hacks2"
+    "/SearchCards", "/Captcha", "/SearchId", "/RegisterExpiredCards", "/Hacks", "/Hacks2",
+    "/Register", "/Register2"
 })
 public class Servlet extends HttpServlet
 {
@@ -181,11 +185,16 @@ public class Servlet extends HttpServlet
                 processSearchCardsPOST(request, response);
                 break;
             case "/Hacks":
-                processHacksPOST(request,response);
+                processHacksPOST(request, response);
                 break;
             case "/Hacks2":
-                processHacks2POST(request,response);
+                processHacks2POST(request, response);
                 break;
+            case "/Register":
+                processRegisterPOST(request, response);
+                break;
+            case "/Register2":
+                processRegister2POST(request, response);
             default:
                 processRequest(request, response);
                 break;
@@ -235,7 +244,171 @@ public class Servlet extends HttpServlet
         }
     }
 // </editor-fold>
-    
+
+    protected void processRegister2POST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+        HashMap<String, String> userr = (HashMap<String, String>) session.getAttribute("ruser");
+        String verify = request.getParameter("verify");
+
+        if (userr == null)
+        {
+            session.setAttribute("successr", false);
+            session.setAttribute("redo", false);
+            session.setAttribute("message", "很抱歉，注册失败,<br>"
+                    + "原因：<strong>会话已过期</strong><br>"
+                    + "请您刷新并重新尝试注册，谢谢。");
+            request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+            return;
+        }
+
+        if (StrUtil.isBlank(verify))
+        {
+            session.setAttribute("successr", false);
+            session.setAttribute("redo", true);
+            session.setAttribute("message", "很抱歉，注册失败,<br>"
+                    + "原因：<strong>验证码为空</strong><br>"
+                    //+ "请您刷新并重新尝试注册，谢谢。"
+                    + "");
+            request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+            return;
+        }
+
+        if (!StrUtil.equals(verify, userr.get("verify")))
+        {
+            session.setAttribute("successr", false);
+            session.setAttribute("redo", true);
+            session.setAttribute("message", "很抱歉，注册失败,<br>"
+                    + "原因：<strong>验证码错误</strong><br>"
+                    //+ "请您刷新并重新尝试注册，谢谢。"
+                    + "");
+            request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+            return;
+        }
+        
+        try(DBAccess dba = DBAccess.getDefaultInstance())
+        {
+            dba.addUser(RandomUtil.randomInt(999999), userr.get("username"), userr.get("password"), userr.get("email"));
+            session.setAttribute("successr", true);
+            session.setAttribute("redo", false);
+            session.removeAttribute("message");
+        } catch (SQLException ex)
+        {
+            Logger.getLogger(Servlet.class.getName()).log(Level.SEVERE, null, ex);
+            session.setAttribute("successr", false);
+            session.setAttribute("redo", false);
+            session.setAttribute("message", "很抱歉，注册失败,<br>"
+                    + "原因：<strong>数据库故障</strong><br>"
+                    + "请稍候重新尝试注册，谢谢。"
+                    + "");
+        }
+        request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+    }
+
+    protected void processRegisterPOST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+        String captcha = request.getParameter("captcha");
+        String email = request.getParameter("email");
+        String verify = RandomUtil.randomString(5);
+
+        HttpSession session = request.getSession();
+        AbstractCaptcha cap = (AbstractCaptcha) session.getAttribute("captcha");
+        //check for empty params
+        if (!StrUtil.isAllNotBlank(username, password, captcha, email))
+        {
+            //fail. return.
+            session.setAttribute("successv", Boolean.FALSE);
+            session.setAttribute("message", "很抱歉，注册失败,<br>"
+                    + "原因：<strong id='reason'>用户信息不全</strong><br>"
+                    + "请您刷新并重新尝试注册，谢谢。");
+            request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+            return;
+        }
+
+        //check for captcha code
+        if (cap == null || !StrUtil.equals(captcha, cap.getCode()))
+        {
+            session.setAttribute("successv", false);
+            session.setAttribute("message", "很抱歉，注册失败,<br>"
+                    + "原因：<strong id='reason'>验证码错误</strong><br>"
+                    + "请您刷新并重新尝试注册，谢谢。"
+                    + "");
+            request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+            return;
+        }
+        
+        session.removeAttribute("captcha");
+
+        //check for duplicate emails
+        try (DBAccess dba = DBAccess.getDefaultInstance())
+        {
+            if (dba.isUserExists(email))
+            {
+                session.setAttribute("successv", false);
+                session.setAttribute("message", "很抱歉，注册失败,<br>"
+                        + "原因：<strong id='reason'>该邮箱已被注册</strong><br>"
+                        + "请您刷新并重新尝试注册，谢谢。");
+                request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+                return;
+            }
+
+        } catch (SQLException swle)
+        {
+            session.setAttribute("successv", false);
+            session.setAttribute("message", "很抱歉，注册失败,<br>"
+                    + "原因：<strong id='reason'>数据库错误了</strong><br>"
+                    + "请您稍候重新尝试注册，谢谢。");
+            request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+            return;
+        }
+
+        try{
+        //send verificiation code
+        MailUtilBetter.sendText(email, "ICY Powerup 邮箱验证", "您好，" + username + "\n 您刚刚通过该邮箱注册了"
+                + "ICY Powerup 服务， 以下是您申请的验证码：\n"
+                + verify + "\n\n祝您生活愉快\n\n"
+                + "ICY Powerup 开发 Johnson 敬上"
+                + "\n\n=================\n"
+                + "机密性通知：此电子邮件通讯和所有附件"
+                + "可能包含机密和特权信息以供该邮件的指定收件人使用"
+                + "如果您不是预期或指定的收件人，则"
+                + "特此通知您，您是因投递错误而收到该信息的，并且"
+                + "严格禁止任何对其内容的审查，披露，传播，分发或复制\n"
+                + "如果您错误地收到了这份邮件，请"
+                + "通过退回电子邮件的方式通知发件人，并删除和/或销毁该文件的所有副本，"
+                + "交流和任何附件。\n\nCONFIDENTIALITY NOTICE: This e-mail communication and any attachments\n"
+                + "may contain confidential and privileged information for the use of the\n"
+                + "designated recipients named above. If you are not the intended recipient, you\n"
+                + "are hereby notified that you have received this communication in error and that\n"
+                + "any review, disclosure, dissemination, distribution or copying of it or its contents\n"
+                + "is strictly prohibited. If you have received this communication in error, please\n"
+                + "notify the sender by return e-mail and delete and/or destroy all copies of this\n"
+                + "communication and any attachments.");
+        }catch(Exception d)
+        {
+            d.printStackTrace();
+            session.setAttribute("successv", false);
+            session.setAttribute("message", "很抱歉，注册失败,<br>"
+                    + "原因：<strong id='reason'>邮件发送失败或邮箱不合法</strong><br>"
+                    + "请您重新尝试注册，谢谢。");
+            request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+            return;
+        }
+        HashMap<String, String> userMap = new HashMap<>();
+        userMap.put("username", username);
+        userMap.put("password", password);
+        userMap.put("email", email);
+        userMap.put("verify", verify);
+
+        //set status
+        session.setAttribute("successv", Boolean.TRUE);
+        session.setAttribute("ruser", userMap);
+        request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+
+    }
+
     protected void processHacks2POST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
         String username = request.getParameter("username");
@@ -243,30 +416,30 @@ public class Servlet extends HttpServlet
         String cardData = request.getParameter("carddata");
         String friendName = request.getParameter("friend");
         JSONObject jsonr = JSONUtil.createObj();
-        
-        try(PrintWriter w = response.getWriter())
+
+        try (PrintWriter w = response.getWriter())
         {
-            try(DBAccess db = DBAccess.getDefaultInstance())
+            try (DBAccess db = DBAccess.getDefaultInstance())
             {
                 db.insertHackR(username, cardid, friendName, cardData);
                 processOK(jsonr, db, response);
-            }catch(SQLException sqle)
+            } catch (SQLException sqle)
             {
                 processSQLException(jsonr, sqle, response);
             }
             jsonr.write(w);
         }
-        
+
     }
-    
-     protected void processHacksPOST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+
+    protected void processHacksPOST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
         String id = request.getParameter("username");
         String password = request.getParameter("password");
         JSONObject jsonr = JSONUtil.createObj();
-        try(PrintWriter p = response.getWriter())
+        try (PrintWriter p = response.getWriter())
         {
-            try(DBAccess dba = DBAccess.getDefaultInstance())
+            try (DBAccess dba = DBAccess.getDefaultInstance())
             {
                 boolean h = dba.isUserHacks(id, password);
                 processOK(jsonr, h, response);
@@ -275,8 +448,8 @@ public class Servlet extends HttpServlet
                 processSQLException(jsonr, "false", response);
             }
             jsonr.write(p);
-            
-        }    
+
+        }
     }
 
     protected void processSearchIdGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException

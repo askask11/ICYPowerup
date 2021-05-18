@@ -78,7 +78,7 @@ Description: This document is created for index page
                     请<a href="https://www.icardyou.icu/userInfo/homePage?userId=32364" target="_blank">站内信Johnson</a>,
                     或联系Johnson的电子邮件vip@jianqinggao.com以获得账号。
                     获取账号后，根据提示绑定自己的ICY账号即可实现各种炫酷的功能啦！<br>
-                    
+                    *部分功能可能不稳定
                 </p>
             </section>
             <br><!-- comment -->

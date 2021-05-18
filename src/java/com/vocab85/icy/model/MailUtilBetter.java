@@ -1,9 +1,9 @@
 /*
  * Author: jianqing
- * Date: May 10, 2021
+ * Date: May 19, 2021
  * Description: This document is created for
  */
-package com.vocab85.icy.test;
+package com.vocab85.icy.model;
 
 import cn.hutool.extra.mail.Mail;
 import cn.hutool.extra.mail.MailUtil;
@@ -13,18 +13,17 @@ import java.nio.charset.Charset;
  *
  * @author jianqing
  */
-public class TestURLUtil
+public class MailUtilBetter extends MailUtil
 {
-    public static void main(String[] args)
+
+    public static void sendText(String to, String title, String content)
     {
-        
         Mail mail = Mail.create();
         mail.setUseGlobalSession(false);
         mail.setCharset(Charset.forName("UTF-8"));
-        mail.setTitle("Test Mail");
-        mail.setContent("Ni Hao!");
-        mail.setTos("hfisdbvgidsryilsyvilsrygiwuy@qbguguguguq.com");
+        mail.setTitle(title);
+        mail.setContent(content);
+        mail.setTos(to);
         mail.send();
-        
     }
 }
