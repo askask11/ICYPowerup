@@ -20,7 +20,7 @@ public class User
     private String password;
     private String icyid;
     private String token;
-
+    
     private String email;
     //private boolean icyVerified;
 

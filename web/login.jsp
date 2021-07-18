@@ -13,7 +13,8 @@
         <%@include file="/WEB-INF/jspf/head.jspf" %>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/askask11/weblib@0.1-beta.1/css/animated-field.css" integrity="sha256-iEJJ2kYJy729hQJtUHrgdmjURlghCZaQyLl9nPLmdIo=" crossorigin="anonymous"><!-- comment -->
 
-        <script src="https://cdn.jsdelivr.net/gh/placemarker/jQuery-MD5@master/jquery.md5.js"></script>
+
+
 
         <style>
             body
@@ -38,10 +39,15 @@
             }
             .lds-roller div:after{background: #3399ff;}
 
-            #registerFrame{
+            #registerFrame, #passwordRecoveryFrame{
                 width:80%; 
                 border:0px;
                 height:160px;
+            }
+
+            #passwordRecoveryFrame
+            {
+                height: 300px;
             }
         </style>
         ${user==null?"":"<meta http-equiv='refresh' content='0; url=ManagePanel'>"}
@@ -71,7 +77,7 @@
                     <form>
                         <div id="f1" class="animated-text-input-container text-center" style="margin: auto;">
                             <input id="username" type="text" required title="user" name="username">
-                            <label class="label-name"><span class="content-name">用户名</span></label>
+                            <label class="label-name"><span class="content-name">用户名/邮箱</span></label>
                         </div>
                         <div id="f2" class="animated-text-input-container text-center" style="margin: auto;">
                             <input id="password" type="password" required title="pass" name="password">
@@ -80,13 +86,25 @@
                         <button class="btn btn-primary" id="loginbtn" type="button" onclick="login();">
                             登录
                         </button> <br><br>
-                        <a href="javascript:toggleRegisterLogin()">没有账号？立即注册 >>></a>
 
+                        记住我：
+                        <label class="switch">
+                            <input type="checkbox" id="toggleRemember" name="remember" checked>
+                            <span class="slider round"></span>
+                        </label>
+                        <br>
+                        <a href="javascript:toggleRegisterLogin()">没有账号？立即注册 >>></a>  <!-- comment -->  
+                        <a id="djidadcs" href="javascript:passwordRecovery()">忘记密码？</a>
 
                     </form>
 
                     <!-- comment -->
+                    <div id="passwordRecoveryArea" style="display: none;">
 
+                        <iframe id="passwordRecoveryFrame" name="recoveryFrame" onload="">
+
+                        </iframe>
+                    </div>
                 </div>
 
                 <div id="registerArea" style="display:none;">
@@ -122,12 +140,16 @@
                 </div>
 
 
+
+
                 <div id="registerVerifyArea" style="display:none;">
-                    
+
                     <iframe id="registerFrame" name="registerFrame" src="registerpre.html" onload="registerFrameOnLoad()">
 
                     </iframe>
                 </div>
+
+
 
                 <a href="javascript:developer()">我是开发者</a><br><!-- 来嘛 -->
                 <br>
@@ -145,6 +167,15 @@
         </div>
 
         <script>
+            function passwordRecovery()
+            {
+                var port = window.location.port;
+                document.getElementById("passwordRecoveryFrame").src = "./PasswordRecovery";
+                        $("#passwordRecoveryArea").fadeIn("slow");
+                $("#djidadcs").fadeOut();
+
+            }
+
 
             function registerFrameOnLoad()
             {
@@ -152,20 +183,20 @@
                 const statusE = idoc.getElementById("status");
                 if (statusE === null)
                 {
-                    if(idoc.getElementsByTagName("body").innerText.includes("HTTP Status"))
+                    if (idoc.getElementsByTagName("body").innerText.includes("HTTP Status"))
                     {
-                        Swal.fire("未知错误","一个未知的错误发生了","error");
+                        Swal.fire("未知错误", "一个未知的错误发生了", "error");
                     }
                     return;
                 }
-                
+
 
                 const status = statusE.value;
 
                 switch (status) {
                     case "success":
                         //succs
-                        Swal.fire("恭喜，注册成功","您现在可以登录了！本页面5秒后将自动刷新！感谢您注册！","success");
+                        Swal.fire("恭喜，注册成功", "您现在可以登录了！本页面5秒后将自动刷新！感谢您注册！", "success");
                         setTimeout(() => {
                             window.location.reload();
                         }, 5000);
@@ -178,24 +209,23 @@
                         var reason = idoc.getElementById("reason").innerText;
                         if (reason === "验证码错误")
                         {
-                            Swal.fire("验证码错误","抱歉，您输入的验证码有误，请重新输入。","warning");
-                            
+                            Swal.fire("验证码错误", "抱歉，您输入的验证码有误，请重新输入。", "warning");
+
                             document.getElementById("rcaptcha").value = "";
 
                         } else if (reason === "该邮箱已被注册")
                         {
-                            Swal.fire("该邮箱已被注册","抱歉，您注册的邮箱已被注册，请重新输入。","warning");
-                            document.getElementById("remail").value="";
+                            Swal.fire("该邮箱已被注册", "抱歉，您注册的邮箱已被注册，请重新输入。", "warning");
+                            document.getElementById("remail").value = "";
                             document.getElementById("remail").focus();
-                            
-                        }else if(reason === "邮件发送失败或邮箱不合法")
+
+                        } else if (reason === "邮件发送失败或邮箱不合法")
                         {
-                            Swal.fire("邮件问题","邮件发送失败或邮箱不合法","error");
+                            Swal.fire("邮件问题", "邮件发送失败或邮箱不合法", "error");
                             document.getElementById("remail").focus();
-                        }
-                        else if(reason === "数据库错误了")
+                        } else if (reason === "数据库错误了")
                         {
-                            Swal.fire("数据库错误","数据库发生了错误，请稍后尝试注册","warning");
+                            Swal.fire("数据库错误", "数据库发生了错误，请稍后尝试注册", "warning");
                         }
                         break;
                     case "fail2":
@@ -224,13 +254,13 @@
                 $("#registerArea").fadeOut("slow");
                 $("#registerVerifyArea").fadeIn("slow");
                 const vs = document.createElement("link");
-                vs.href="https://cdn.jsdelivr.net/gh/askask11/weblib@master/css/lds-loader.css";
-                vs.rel="stylesheet";
+                vs.href = "https://cdn.jsdelivr.net/gh/askask11/weblib@master/css/lds-loader.css";
+                vs.rel = "stylesheet";
                 const vs2 = document.createElement("style");
                 vs2.innerHTML = ".lds-roller div:after{background: #3399ff;} body{text-align:center;}";
                 document.getElementById("registerFrame").contentDocument.getElementsByTagName("head")[0].appendChild(vs);
                 document.getElementById("registerFrame").contentDocument.getElementsByTagName("head")[0].appendChild(vs2);
-                document.getElementById("registerFrame").contentDocument.getElementsByTagName("body")[0].innerHTML="请稍等<br><div class='lds-roller'><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>";
+                document.getElementById("registerFrame").contentDocument.getElementsByTagName("body")[0].innerHTML = "请稍等<br><div class='lds-roller'><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>";
                 return true;//submit the form!
             }
 
@@ -275,12 +305,12 @@
                 })
 
                 //post user login data.
-                $.post("doLogin", {username: user, password: pass}, (data, status, xhr) => {
+                $.post("doLogin", {username: user, password: pass, remember: document.getElementById("toggleRemember").checked}, (data, status, xhr) => {
                     console.log("noo");
                     var jsono = data;
                     if (jsono["code"] === "OK")
                     {
-                        window.location = "ManagePanel";
+                        window.location.href = "ManagePanel";
                         return;
                     }
                     //ooops, an error occured.
@@ -325,7 +355,13 @@
                         'info'
                         );
             }
+
+
         </script>
+        <!-- Triggers a function to login immidiately-->
+        <c:if test="${empty user}">
+            <script src="js/autologin.js"></script>
+        </c:if>
         <br><br><br>
         <footer class="text-center footer translucent">
             <small style="bottom: 0;">

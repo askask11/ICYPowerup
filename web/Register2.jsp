@@ -18,8 +18,8 @@
                 恭喜，注册成功！
             </h4>
             现在您可以使用您的账户登录Powerup 啦~<br>
-            您的用户名：${userr.get("username")}<br><!-- comment -->
-            您的邮箱：${userr.get("email")}<br><!-- comment -->
+            <%-- 您的用户名：${userr.get("username")}<br><!-- comment -->
+            您的邮箱：${userr.get("email")}<br><!-- comment -->--%>
             祝您使用愉快！
             <input type="hidden" id="status" value="success">
         </c:if>

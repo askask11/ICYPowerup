@@ -1,0 +1,6 @@
+
+When adding new function to a script, search for  "FEP" (Function Expansion Point)
+You should add your new functions to FEP.
+
+
+index.js, AutoRegister.js needs to be updated from the OSS either.

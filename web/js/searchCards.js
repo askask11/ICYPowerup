@@ -4,24 +4,37 @@
  * Description: This document is created for
  */
 $(".stsel").click(function () {
-   if($("#st1")[0].checked) 
-   {
-       //search use URL show
-       $("#st1-div").fadeIn();
-       $("#st2-div").fadeOut();
-   }else
-   {
-       $("#st1-div").fadeOut();
-       $("#st2-div").fadeIn();
-       
-   }
+    if ($("#st1")[0].checked)
+    {
+        //search use URL show
+        $("#st1-div").fadeIn();
+        $("#st2-div").fadeOut();
+    } else
+    {
+        $("#st1-div").fadeOut();
+        $("#st2-div").fadeIn();
+
+    }
 });
 
 function searchForId()
 {
-    const btn = document.getElementById("sfcfcfbt");
-    btn.disabled=true;
-    btn.innerHTML="<span class='spinner-border spinner-border-sm'></span> 加载中..."
+    function disableBtn()
+    {
+        const btn = document.getElementById("sfcfcfbt");
+        btn.disabled = true;
+        btn.innerHTML = "<span class='spinner-border spinner-border-sm'></span> 加载中..."
+    }
+
+    function enableBtn()
+    {
+        const btn = document.getElementById("sfcfcfbt");
+        btn.disabled = false;
+        btn.innerHTML = "搜索片友";
+    }
+    
+    disableBtn();
+
     function createSearchResultRow(id, imgsrc, name)
     {
         const row = document.createElement("tr");
@@ -38,14 +51,14 @@ function searchForId()
 //        radio.style.setProperty("margin-left","10px");
 //        radio.style.setProperty("margin-right","10px");
         nameEle.innerHTML = name;
-        nameEle.href="https://www.icardyou.icu/userInfo/homePage?userId="+id;
-        nameEle.title = "点击前往"+name+"的主页";
+        nameEle.href = "https://www.icardyou.icu/userInfo/homePage?userId=" + id;
+        nameEle.title = "点击前往" + name + "的主页";
         nameEle.target = "_blank";
         //name.style.setProperty("margin-left","10px");
-        imageEle.setAttribute("referrerpolicy","no-referrer");
+        imageEle.setAttribute("referrerpolicy", "no-referrer");
         imageEle.classList.add("preview-cf-img");
         imageEle.src = imgsrc + "";
-        
+
         col1.appendChild(radio);
         col2.appendChild(imageEle);
         col3.appendChild(nameEle);
@@ -57,16 +70,16 @@ function searchForId()
     var val = $("#friendid")[0].value;
     if (!val)
     {
+        enableBtn();
         Swal.fire("名字为空", "请输入片友昵称", "warning");
         return;
     }
 
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", "SearchId?name="+encodeURIComponent(val));
+    xhr.open("GET", "SearchId?name=" + encodeURIComponent(val));
     xhr.onload = function () {
-
-        btn.disabled=false;
-        btn.innerHTML = "搜索片友";
+        enableBtn();
+        
         var jsonr = JSON.parse(xhr.responseText);
         if (jsonr["code"] === "OK")
         {
@@ -90,7 +103,7 @@ function searchForId()
 
     };
     xhr.onerror = function () {
-        btn.disabled=false;
+        btn.disabled = false;
         btn.innerHTML = "搜索片友";
         Swal.fire("未知错误", "发生了未知错误", "warning");
     };
@@ -106,7 +119,7 @@ function submitSearchCardClick()
         var doms = document.getElementsByName("sr");
         for (var i = 0, max = doms.length; i < max; i++) {
             var d = doms[i];
-            if(d.checked)
+            if (d.checked)
             {
                 return d.value;
             }
@@ -142,11 +155,11 @@ function submitSearchCardClick()
             Swal.fire("主页URL不全,缺少userId", "", "warning");
             return;
         }
-    }else
+    } else
     {
         //check for name search
         userId = getSelectedFriend();
-        if(userId==="")
+        if (userId === "")
         {
             Swal.fire("请选择一个片友以继续", "请在给出的结果中选择一个片友继续，如果没有结果，请检查搜索的关键词。", "warning");
             return;
@@ -154,15 +167,53 @@ function submitSearchCardClick()
     }
 
 
-    const parentDiv = document.getElementById("pylink");
-    parentDiv.innerHTML = '正在为您查找，请稍等！<br><br> <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>';//clear out previous things
-    //Activate captcha and send verification code to backend server.
-    grecaptcha.ready(function () {
-        grecaptcha.execute('6LdSILoZAAAAAF2f6ntG72Dj2gG2jNEqg8Q3Gpjh', {action: 'submit'}).then(function (token) {
-            // Add your logic to submit to your backend server here.
-            submitForSearch(userId, token);
+    function confirmSubmission()
+    {
+        const parentDiv = document.getElementById("pylink");
+        parentDiv.innerHTML = '正在为您查找，请稍等！<br><br> <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>';//clear out previous things
+        //Activate captcha and send verification code to backend server.
+        grecaptcha.ready(function () {
+            grecaptcha.execute('6LdSILoZAAAAAF2f6ntG72Dj2gG2jNEqg8Q3Gpjh', {action: 'submit'}).then(function (token) {
+                // 
+                submitForSearch(userId, token);
+            });
         });
-    });
+    }
+
+    const isFirstTime = localStorage.getItem("firsttime-fangchong");
+    if (isFirstTime === null)
+    {
+        Swal.fire({
+            title: '声明',
+            html: "使用此功能，代表您同意我们ICY Powerup系统使用您的ICY账号查询您的历史收发记录和片友信息。<br>" +
+                    "该功能仅做便民查询，查询结果和Powerup官方无关。<br>" +
+                    "为保证服务质量，该功能由谷歌隐形验证码保护，继续使用代表您同意谷歌(Google)的<a href='https://policies.google.com/privacy' target='_blank'>" +
+                    "隐私政策" +
+                    "</a>以及<a href='https://policies.google.com/terms' target='_blank'>" +
+                    "服务条款" +
+                    "</a><br><br>\n\
+                <input id='buzaitixnotice' type='checkbox'>不再提醒",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: '同意并继续',
+            cancelButtonText: '取消'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (document.getElementById("buzaitixnotice").checked)
+                {
+                    localStorage.setItem("firsttime-fangchong", false);
+                }
+
+                confirmSubmission();
+            }
+        });
+        return;
+    }
+
+    confirmSubmission();
+
 
 }
 

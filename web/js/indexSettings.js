@@ -228,6 +228,11 @@ function addImageFloweryPlugin()
             Swal.fire("上传成功", "您的图标已添加成功。完成更改后记得保存哦！", "success");
             document.getElementById("icon-input").value = "";
             document.getElementById("upload-cancel-button").click();
+            $("#floweryPluginTBody").tableDnD({
+                onDrop: (table, row) => {
+                    indexFlowerTable(table);
+                }});
+
         } else if (jsonr["code"] === "OSSException")
         {
             Swal.fire("数据库错误", "请稍后再试", "error");
@@ -297,6 +302,12 @@ function loadAutoRegisterSetting(data)
     document.getElementById("autoRegister").checked = data["render"];
 }
 
+function loadICYLottery(data)
+{
+    document.getElementById("icyLotterySwitch").checked = data["render"];
+}
+
+
 function loadSettings()
 {
     var userid = document.getElementById("userid").value;
@@ -311,7 +322,7 @@ function loadSettings()
             return;
         }
         var json = JSON.parse(xhr.responseText);
-        const keys = ["flowers", "statcard", "autoRegister"];
+        const keys = ["flowers", "statcard", "autoRegister","icylottery"];
         for (var i = 0, max = keys.length; i < max; i++) {
             var plugin = json["plugins"][keys[i]];
 
@@ -338,6 +349,9 @@ function loadSettings()
                     break;
                 case 2:
                     loadAutoRegisterSetting(plugin);
+                    break;
+                case 3:
+                    loadICYLottery(plugin);
                     break;
             }
         }
@@ -397,9 +411,20 @@ function saveSetting()
     var username = document.getElementById("username").value;
     var userid = document.getElementById("userid").value;
     var jsonr = {"username": username, "userid": userid};
-    var jsonPlugins = {"flowers": getFlowerPlugins(),
+    
+    ///****
+    // HERE, IS WHERE ALL THE PLUGINS GETTING LOAD INTO USER'S master.json. 
+    // FUNCTION EXPAND POINT FEP
+    //****///
+    var jsonPlugins = {
+        //"key":{JSON Object}
+        "flowers": getFlowerPlugins(),
         "statcard": getStatcardPlugins(),
-    "autoRegister": {"render":document.getElementById("autoRegister").checked}};
+        "autoRegister": {"render": document.getElementById("autoRegister").checked},
+        "icylottery":{"render":document.getElementById("icyLotterySwitch").checked}
+    };
+    
+    
 
     jsonr["plugins"] = jsonPlugins;
 

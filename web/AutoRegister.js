@@ -21,7 +21,7 @@
     //spanEx.classList.add("col-sm-3");
     input.classList.add("form-control");
     input.type = "text";
-    input.placeholder = "输入过期明信片页面URL";
+    input.placeholder = "输入过期明信片ID";
     input.id = "expiredCD";
     input.style.setProperty("width", "80%");
     input.style.setProperty("margin-right", "10px");
@@ -51,15 +51,15 @@
 
 function autoRegisterExpiredPostcards(userId)
 {
-    var cardurl = document.getElementById("expiredCD").value;
-    var cardid;
-    if (cardurl === "")
+    //var cardurl = document.getElementById("expiredCD").value;
+    var cardid=document.getElementById("expiredCD").value;
+    if (cardid === "")
     {
-        alert("请输入过期的明信片id", "warning");
+        alert("请输入过期的明信片ID", "warning");
         return;
     }
 
-    if (!cardurl.startsWith("https://www.icardyou.icu/sendpostcard/postcardDetail/"))
+    /*if (!cardurl.startsWith("https://www.icardyou.icu/sendpostcard/postcardDetail/"))
     {
         alert("请输入明信片页面的URL，不是明信片ID", "warning");
         return;
@@ -70,7 +70,7 @@ function autoRegisterExpiredPostcards(userId)
     {
         alert("地址不合法，请检查后重新输入", "warning");
         return;
-    }
+    }*/
 
     var xhr = new XMLHttpRequest();
     xhr.open("GET", "https://icy.85vocab.com/RegisterExpiredCards?userId=" + userId + "&cardId=" + cardid);
@@ -82,6 +82,10 @@ function autoRegisterExpiredPostcards(userId)
             case "OK":
                 const daaa = jsonr["data"];
                 alert(daaa["resultMessage"], daaa["resultCode"] === 200 ? "success" : "warning");
+                if(daaa["resultCode"]===200)
+                {
+                    window.open("https://www.icardyou.icu/sendpostcard/postcardDetail/"+daaa["resultBody"].split(";")[0]);
+                }
                 break;
             case "NoExpire":
                 alert("这张卡片还没有过期哦，请过期了再来登记吧！","warning");
@@ -102,7 +106,9 @@ function autoRegisterExpiredPostcards(userId)
             case "NoParam":
                 alert("参数错误，请检查你输入的链接是否完整，或者用户设置不完整，请稍后再试。", "warning");
                 break;
-
+            case "NotFound":
+                alert("抱歉，暂时未找到这张片，请稍后再试。","warning");
+                break;
             default:
                 alert("补登记代理服务器数据库，就，，没有脑子，呜呜呜呜呜  我错了 未知错误", "warning");
                 break;
@@ -110,6 +116,7 @@ function autoRegisterExpiredPostcards(userId)
 
 
     };
+    alert("正在查找，请稍等。","info");
     xhr.send();
 
 }

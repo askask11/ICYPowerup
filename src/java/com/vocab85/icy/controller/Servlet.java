@@ -12,6 +12,7 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.net.multipart.MultipartFormData;
 import cn.hutool.core.net.multipart.UploadFile;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
 import cn.hutool.extra.servlet.ServletUtil;
@@ -34,12 +35,12 @@ import java.net.URL;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
-import javax.mail.MessagingException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -56,7 +57,7 @@ import javax.servlet.http.HttpSession;
     "/index", "/login", "/ManagePanel", "/doLogin", "/logout", "/verifyIcy",
     "/SavePluginSettings", "/UpFile", "/GetTimeout", "/DeleteFile", "/DeregisterICY",
     "/SearchCards", "/Captcha", "/SearchId", "/RegisterExpiredCards", "/Hacks", "/Hacks2",
-    "/Register", "/Register2"
+    "/Register", "/Register2", "/ChangePassword", "/ChangeUsername", "/ChangeEmail", "/PasswordRecovery", "/PasswordRecovery2", "/PasswordRecovery3"
 })
 public class Servlet extends HttpServlet
 {
@@ -109,6 +110,9 @@ public class Servlet extends HttpServlet
         {
             case "/index":
             case "/login":
+            case "/PasswordRecovery":
+            case "/PasswordRecovery2":
+                //case "/PasswordRecoveryEmbedded":
                 request.getRequestDispatcher(path + ".jsp").forward(request, response);
                 break;
             case "/ManagePanel":
@@ -132,6 +136,8 @@ public class Servlet extends HttpServlet
             case "/RegisterExpiredCards":
                 processAutoRegisterGET(request, response);
                 break;
+           
+
             case "/DeleteFile":
             // processDeleteFileGET(request, response);
             // break;
@@ -195,6 +201,22 @@ public class Servlet extends HttpServlet
                 break;
             case "/Register2":
                 processRegister2POST(request, response);
+                break;
+            case "/ChangePassword":
+                processChangePasswordPOST(request, response);
+                break;
+            case "/ChangeEmail":
+                processChangeEmailPOST(request, response);
+                break;
+            case "/ChangeUsername":
+                processChangeUsernamePOST(request, response);
+                break;
+            case "/PasswordRecovery2":
+                processPasswordRecovery2POST(request, response);
+                break;
+            case "/PasswordRecovery3":
+                processPasswordRecovery3POST(request, response);
+                break;
             default:
                 processRequest(request, response);
                 break;
@@ -245,6 +267,244 @@ public class Servlet extends HttpServlet
     }
 // </editor-fold>
 
+    protected void processPasswordRecovery3POST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        //get required information for password recovery/
+        HttpSession session = request.getSession();
+        String email = (String) session.getAttribute("emailPR");
+        String verifyInput = request.getParameter("verify");
+        String verifyCode = (String) session.getAttribute("emailVerifyPR");//PR=password recovery
+        String password = request.getParameter("password");
+
+        //Session has expired, this is the attribute which the last session inherited here.
+        if (StrUtil.isEmpty(email))
+        {
+            setMessage(session, "抱歉，没有检测到您的邮箱，可能会话已过期，请重试。");
+            response.sendRedirect("PasswordRecovery");
+            return;
+        }
+
+        if (!StrUtil.equals(verifyCode, verifyInput))
+        {
+            setMessage(session, "抱歉，邮箱验证码错误，请重试。");
+            response.sendRedirect("PasswordRecovery2");
+            return;
+        }
+
+        try (DBAccess db = DBAccess.getDefaultInstance())
+        {
+            db.updatePasswordByEmail(email, password);
+            session.removeAttribute("message");
+            request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+
+        } catch (Exception e)
+        {
+            setMessage(session, "出了点问题，请稍候再试。");
+            response.sendRedirect("PasswordRecovery2");
+        }
+
+    }
+
+    protected void processPasswordRecovery2POST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+        String email = request.getParameter("email");
+        AbstractCaptcha captcha = (AbstractCaptcha) session.getAttribute("captcha");
+        String captchaInput = request.getParameter("captcha");
+
+        //check for captcha
+        if (!StrUtil.equals(captchaInput.toUpperCase(), captcha.getCode().toUpperCase()))
+        {
+            session.setAttribute("message", "<strong style='color:red;'>验证码错误，请重试。</strong>");
+            response.sendRedirect("PasswordRecovery");
+            return;
+        }
+
+        if (!isEmail(email))
+        {
+            session.setAttribute("message", "<strong style='color:red;'>您输入的邮箱地址不正确，请重新输入。</strong>");
+            response.sendRedirect("PasswordRecovery");
+            return;
+        }
+
+        String verify = Integer.toString(RandomUtil.randomInt(100, 999999));
+
+        try (DBAccess dba = DBAccess.getDefaultInstance())
+        {
+
+            if (!dba.isUserExists(email))
+            {
+                setMessage(session, "该邮箱还未注册, 请输入一个已注册的邮箱。");
+                response.sendRedirect("PasswordRecovery");
+                return;
+            }
+
+            MailUtilBetter.sendVerifyText("", verify, email);
+            session.setAttribute("emailVerifyPR", verify);
+            session.setAttribute("emailPR", email);
+            session.removeAttribute("message");
+            session.removeAttribute("captcha");
+
+            request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
+        } catch (SQLException sqle)
+        {
+            setMessage(session, "数据库出错了，呜呜呜呜。");
+            response.sendRedirect("PasswordRecovery");
+        } catch (Exception ex)
+        {
+            setMessage(session, "验证邮件发送失败了，呜呜呜呜呜。");
+            response.sendRedirect("PasswordRecovery");
+        }
+
+    }
+
+    protected void processChangeUsernamePOST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        String username = ServletUtil.getMultipart(request).getParam("username");
+        JSONObject jsonr = JSONUtil.createObj();
+        User user = (User) request.getSession().getAttribute("user");
+        try (PrintWriter pw = response.getWriter())
+        {
+            if (!checkAuth(jsonr, user, response, pw, username))
+            {
+                return;
+            }
+
+            try (DBAccess dba = DBAccess.getDefaultInstance())
+            {
+                int dr = dba.updateUsername(user.getId(), username);
+                processOK(jsonr, dr, response);
+                user.setUsername(username);
+            } catch (Exception e)
+            {
+                processSQLException(jsonr, e, response);
+            }
+            jsonr.write(pw);
+        }
+    }
+
+    protected void processChangeEmailPOST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        MultipartFormData mp = ServletUtil.getMultipart(request);
+        String email = mp.getParam("email");
+        String verify = mp.getParam("verify");
+
+        JSONObject jsonr = JSONUtil.createObj();
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        String realVerify = (String) session.getAttribute("verifyEmail");
+        try (PrintWriter pw = response.getWriter())
+        {
+            if (!checkAuth(jsonr, user, response, pw, email))
+            {
+                return;
+            }
+
+            if (!isEmail(email))
+            {
+                processStatus(jsonr, "Illeagl parameter: email", "BadParam", 400, response);
+                jsonr.write(pw);
+                return;
+            }
+            try (DBAccess d = DBAccess.getDefaultInstance())
+            {
+                //check if email exists
+                if (d.isUserExists(email))
+                {
+                    processStatus(jsonr, "The email was registered by another user.", "EmailExists", 400, response);
+                    jsonr.write(pw);
+                    return;
+                }
+
+                if (StrUtil.isEmpty(verify))
+                {
+                    //the user has not requested a verify, record timestamp and send user a verify.
+                    LocalTime timenow = LocalTime.now();
+                    LocalTime time = (LocalTime) session.getAttribute("emailVerify-ts");
+                    if (time != null)
+                    {
+                        if (timenow.isBefore(time.plusMinutes(2)))
+                        {
+                            processStatus(jsonr, "", "TooFrequent", 400, response);
+                            jsonr.write(pw);
+                            return;
+                        }
+
+                    }
+                    session.setAttribute("emailVerify-ts", timenow);
+
+                    realVerify = Integer.toString(RandomUtil.randomInt(1000, 9999));
+                    session.setAttribute("verifyEmail", realVerify);
+                    try
+                    {
+                        MailUtilBetter.sendVerifyText(user.getUsername(), realVerify, email);
+                        processStatus(jsonr, "", "OK-verify", 200, response);
+                    } catch (Exception e)
+                    {
+                        processStatus(jsonr, e, "Exception", 400, response);
+                    }
+
+                } else
+                {
+                    //user respond verify
+                    if (StrUtil.equals(verify, realVerify))
+                    {
+                        int i = d.updateEmail(user.getId(), email);
+                        session.removeAttribute("verifyEmail");
+                        processOK(jsonr, i, response);
+                        user.setEmail(email);
+                    } else
+                    {
+                        processStatus(jsonr, "", "BadVerify", 400, response);
+                    }
+
+                }
+            } catch (Exception e)
+            {
+                processSQLException(jsonr, e, response);
+            }
+            jsonr.write(pw);
+
+        }
+    }
+
+    protected void processChangePasswordPOST(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
+    {
+        String pass = ServletUtil.getMultipart(req).getParam("password");
+        JSONObject jsonr = JSONUtil.createObj();
+        User user = (User) req.getSession().getAttribute("user");
+
+        try (PrintWriter pw = resp.getWriter())
+        {
+            if (!checkAuth(jsonr, user, resp, pw, pass))
+            {
+                return;
+            }
+
+            if (pass.length() != 32)
+            {
+                processStatus(jsonr, "The password is not md5 encrypted!", "BadParam", 400, resp);
+                jsonr.write(pw);
+                return;
+            }
+
+            int id = user.getId();
+
+            try (DBAccess dba = DBAccess.getDefaultInstance())
+            {
+                int rowsssss = dba.updatePassword(id, pass);
+                processOK(jsonr, rowsssss, resp);
+            } catch (SQLException sqle)
+            {
+                processSQLException(jsonr, sqle, resp);
+            }
+
+            jsonr.write(pw);
+
+        }
+
+    }
+
     protected void processRegister2POST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
         HttpSession session = request.getSession();
@@ -285,8 +545,8 @@ public class Servlet extends HttpServlet
             request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
             return;
         }
-        
-        try(DBAccess dba = DBAccess.getDefaultInstance())
+
+        try (DBAccess dba = DBAccess.getDefaultInstance())
         {
             dba.addUser(RandomUtil.randomInt(999999), userr.get("username"), userr.get("password"), userr.get("email"));
             session.setAttribute("successr", true);
@@ -311,8 +571,9 @@ public class Servlet extends HttpServlet
         String password = request.getParameter("password");
         String captcha = request.getParameter("captcha");
         String email = request.getParameter("email");
-        String verify = RandomUtil.randomString(5);
+        String verify = Integer.toString(RandomUtil.randomInt(1000, 9999));
 
+        username = fixCharset(username);
         HttpSession session = request.getSession();
         AbstractCaptcha cap = (AbstractCaptcha) session.getAttribute("captcha");
         //check for empty params
@@ -328,7 +589,7 @@ public class Servlet extends HttpServlet
         }
 
         //check for captcha code
-        if (cap == null || !StrUtil.equals(captcha, cap.getCode()))
+        if (cap == null || !StrUtil.equals(captcha.toUpperCase(), cap.getCode().toUpperCase()))
         {
             session.setAttribute("successv", false);
             session.setAttribute("message", "很抱歉，注册失败,<br>"
@@ -338,7 +599,7 @@ public class Servlet extends HttpServlet
             request.getRequestDispatcher(request.getServletPath() + ".jsp").forward(request, response);
             return;
         }
-        
+
         session.removeAttribute("captcha");
 
         //check for duplicate emails
@@ -364,29 +625,11 @@ public class Servlet extends HttpServlet
             return;
         }
 
-        try{
-        //send verificiation code
-        MailUtilBetter.sendText(email, "ICY Powerup 邮箱验证", "您好，" + username + "\n 您刚刚通过该邮箱注册了"
-                + "ICY Powerup 服务， 以下是您申请的验证码：\n"
-                + verify + "\n\n祝您生活愉快\n\n"
-                + "ICY Powerup 开发 Johnson 敬上"
-                + "\n\n=================\n"
-                + "机密性通知：此电子邮件通讯和所有附件"
-                + "可能包含机密和特权信息以供该邮件的指定收件人使用"
-                + "如果您不是预期或指定的收件人，则"
-                + "特此通知您，您是因投递错误而收到该信息的，并且"
-                + "严格禁止任何对其内容的审查，披露，传播，分发或复制\n"
-                + "如果您错误地收到了这份邮件，请"
-                + "通过退回电子邮件的方式通知发件人，并删除和/或销毁该文件的所有副本，"
-                + "交流和任何附件。\n\nCONFIDENTIALITY NOTICE: This e-mail communication and any attachments\n"
-                + "may contain confidential and privileged information for the use of the\n"
-                + "designated recipients named above. If you are not the intended recipient, you\n"
-                + "are hereby notified that you have received this communication in error and that\n"
-                + "any review, disclosure, dissemination, distribution or copying of it or its contents\n"
-                + "is strictly prohibited. If you have received this communication in error, please\n"
-                + "notify the sender by return e-mail and delete and/or destroy all copies of this\n"
-                + "communication and any attachments.");
-        }catch(Exception d)
+        try
+        {
+            //send verificiation code
+            MailUtilBetter.sendVerifyText(username, verify, email);
+        } catch (Exception d)
         {
             d.printStackTrace();
             session.setAttribute("successv", false);
@@ -481,7 +724,7 @@ public class Servlet extends HttpServlet
     protected void processAutoRegisterGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
         JSONObject jsonr = JSONUtil.createObj();
-        String pcid = request.getParameter("cardId");
+        String pcid = request.getParameter("cardId").trim().toUpperCase();
         String userId = request.getParameter("userId");
 
         try (PrintWriter pw = response.getWriter())
@@ -496,37 +739,83 @@ public class Servlet extends HttpServlet
 
             try (DBAccess db = DBAccess.getDefaultInstance())
             {
-                String[] cardInfo = ICYWebCommunicator.getCardInfo(pcid);
-                String cardId = cardInfo[1];
-                String cardStatus = cardInfo[2];
-                if (!cardStatus.equals("已过期"))
-                {
-                    processStatus(jsonr, "This card did not expire!!!", "NoExpire", 400, response);
-                    jsonr.write(pw);
-                    return;
-                }
-
                 //get if user has bonded with ICY
                 OSSObject oo = AliOSS.getUserMasterJSON(userId);
                 if (oo.getResponse().isSuccessful())
                 {
+                    
+                    
+                    //check user function status, see if user has turned on this function
                     JSONObject jsonoo = JSONUtil.parseObj(IoUtil.read(oo.getObjectContent(), "UTF-8"));
-                    Boolean isOpen = jsonoo.getJSONObject("plugins").getBool("autoRegister");
+                    Boolean isOpen = jsonoo.getJSONObject("plugins").getJSONObject("autoRegister").getBool("render");
                     if (isOpen == null || !isOpen)
                     {
                         processStatus(jsonr, "The user did not turn on this function.", "NoOpen", 400, response);
                         jsonr.write(pw);
                         return;
                     }
+                    
+                    //check card status
+                    //card info is the one that actually crawl from the web.
+                     //go to register the card
+                    String cardURLId = db.getCardSeqByCardId(pcid);
+                    
+                    if(cardURLId==null)
+                    {
+                        processStatus(jsonr, "The indicated card ID could not be found at the database yet.", "NotFound", 400, response);
+                        jsonr.write(pw);
+                        return;
+                    }
+                    //warning
+                    
+                    String[] cardInfo = ICYWebCommunicator.getCardInfo(cardURLId);
+                    if(cardInfo==null)
+                    {
+                        processStatus(jsonr, "The card ID not in record.", "NotFound", 400, response);
+                        jsonr.write(pw);
+                        return;
+                    }
+                    //String cardId = cardInfo[1];
+                    String cardStatus = cardInfo[2];
+                    String sender = cardInfo[3];
+                    String sendDate = cardInfo[4];
+                    if (!cardStatus.equals("已过期"))
+                    {
+                        //the card did not expire.
+                        processStatus(jsonr, "This card did not expire!!!", "NoExpire", 400, response);
+                        jsonr.write(pw);
+                        return;
+                    }
+                    
+                    
+                    
                     //try to autoregister it for user
-                    String icyid = db.getIcyIdByUserId(Integer.parseInt(userId));
+                    User user = db.getUserByUserId(Integer.parseInt(userId));
+                    String icyid = user.getIcyid();
 
-                    //go to register the card
-                    JSONObject registerJSON = ICYWebCommunicator.registerCardForUser(icyid, cardId);
+                   
+                    JSONObject registerJSON = ICYWebCommunicator.registerCardForUser(icyid, pcid);
+                    
+                    
+                    
                     //get registeration message
                     processOK(jsonr, registerJSON, response);
+                    
                     //write back to the client
-
+                    //jsonr.write(pw); it is done at the last step.
+                    //send an email to the user
+                    String userEmail = user.getEmail();
+                    
+                    if(StrUtil.isNotBlank(userEmail)&&registerJSON.getInt("resultCode")==200)
+                    {
+                        MailUtilBetter.sendText(user.getEmail(), "【ICY过期自助补登】" + pcid + "已由站内小伙伴自助登记", ""
+                                + "您好，\n"
+                                + sender + "于" + sendDate + "向您发送的卡片ID：" + pcid + "已由小伙伴通过站内自助补登记功能登记\n"
+                                + "特此通知。\n"
+                                + ""
+                                + "ICY Powerup 敬上");
+                    }
+                   
                 } else
                 {
                     //the user did not bond successfully, no setting file found.
@@ -552,13 +841,18 @@ public class Servlet extends HttpServlet
         }
     }
 
-    private String checkForCharset(HttpServletRequest request, String str) throws UnsupportedEncodingException
+    public static String checkForCharset(HttpServletRequest req, String str) throws UnsupportedEncodingException
     {
-        if ("localhost:8080".equals(request.getHeader("Host")))
+        if (req.getHeader("Host").equals("localhost:8080"))
         {
-            return new String(str.getBytes("ISO8859_1"), "UTF-8");
+            return fixCharset(str);
         }
         return str;
+    }
+
+    public static String fixCharset(String str) throws UnsupportedEncodingException
+    {
+        return new String(str.getBytes("ISO8859_1"), "UTF-8");
     }
 
     protected void processCaptchaGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
@@ -567,7 +861,11 @@ public class Servlet extends HttpServlet
 
         ShearCaptcha gc = CaptchaUtil.createShearCaptcha(120, 40);
         gc.createCode();
-        response.setHeader("cache-control", "no-cache");
+        response.setDateHeader("Expires", 0);
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        response.addHeader("Cache-Control", "post-check=0, pre-check=0");
+        response.setHeader("Pragma", "no-cache");
+        response.setContentType("image/jpeg");
 
         try (OutputStream os = response.getOutputStream())
         {
@@ -631,17 +929,46 @@ public class Servlet extends HttpServlet
         clearMessage(session);
         String username = request.getParameter("username");
         String password = request.getParameter("password");
+        String remember = request.getParameter("remember");
+        String token = request.getParameter("token");
         JSONObject retJSON = JSONUtil.createObj();
         try (PrintWriter writer = response.getWriter())
         {
             try (DBAccess db = DBAccess.getDefaultInstance())
             {
-                user = db.getUser(username, password);
+                //login by token or email or username/password
+                if(StrUtil.isNotBlank(token))
+                {
+                    user = db.getUserByToken(token);
+                }
+                else if (isEmail(username))
+                {
+                    user = db.getUserByEmail(username, password);
+                    if (user == null)
+                    {
+                        //the username is not a valid email, try to fetch with username.
+                        user = db.getUser(username, password);
+                    }
+                } else
+                {
+                    user = db.getUser(username, password);
+                }
+                
+                
+
                 if (user == null)
                 {
                     processStatus(retJSON, "DNE", "NoSuchUser", 400, response);
                 } else
                 {
+                 //remember user
+                if(StrUtil.equals(remember, "true"))
+                {
+                    token = RandomUtil.randomString(19);
+                    user.setToken(token);
+                    db.setUserToken(user.getId(), token);
+                }
+
                     processOK(retJSON, "", response);
                     session.setAttribute("user", user);
                 }
@@ -668,7 +995,18 @@ public class Servlet extends HttpServlet
     protected void processLogoutGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
         HttpSession s = request.getSession();
-
+        User user = (User)s.getAttribute("user");
+        String soft = request.getParameter("soft");
+        if(user!=null && !StrUtil.equals(soft, "true"))
+        {
+            try(DBAccess db = DBAccess.getDefaultInstance())
+            {
+                db.clearUserToken(user.getId());
+            } catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
         s.removeAttribute("user");
 
         response.sendRedirect("login.jsp");
@@ -936,6 +1274,16 @@ public class Servlet extends HttpServlet
         //response.setHeader("Access-Control-Allow-Origin", "*");
     }
 
+    public static void processNoParam(JSONObject jsonr, HttpServletResponse resp) throws ServletException, IOException
+    {
+        processStatus(jsonr, "Required parameters are not fulfilled!", "NoParam", 400, resp);
+    }
+
+    public static void processNoLogin(JSONObject jsonr, HttpServletResponse resp) throws ServletException, IOException
+    {
+        processStatus(jsonr, "You need to login first to use this function. Please login!", "NoLogin", 400, resp);
+    }
+
     public static void processOK(JSONObject jsonr, Object data, HttpServletResponse response) throws ServletException, IOException
     {
         processStatus(jsonr, data, "OK", 200, response);
@@ -949,5 +1297,29 @@ public class Servlet extends HttpServlet
     public static void processSQLException(JSONObject jsonr, Object data, HttpServletResponse response) throws ServletException, IOException
     {
         processStatus(jsonr, data, "SQLException", 500, response);
+    }
+
+    public static boolean isEmail(String email)
+    {
+        return ReUtil.isMatch("^[\\w-_\\.+]*[\\w-_\\.]\\@([\\w]+\\.)+[\\w]+[\\w]$", email);
+    }
+
+    public boolean checkAuth(JSONObject jsonr, User user, HttpServletResponse resp, PrintWriter pw, String... requiredParams) throws ServletException, IOException
+    {
+        if (!StrUtil.isAllNotEmpty(requiredParams))
+        {
+            processNoParam(jsonr, resp);
+            jsonr.write(pw);
+            return false;
+        }
+
+        if (user == null)
+        {
+            processNoLogin(jsonr, resp);
+            jsonr.write(pw);
+            return false;
+        }
+
+        return true;
     }
 }

@@ -64,7 +64,7 @@
         }
         function createElement(s)
         {
-            return document.createElement(s)
+            return document.createElement(s);
         }
         function setImageWidth(img, w)
         {
@@ -77,23 +77,36 @@
         const briefIntro = $("table")[0].children[0].children[1].children[0].innerHTML
         const lastLoginDate = briefIntro.substring(briefIntro.indexOf("最后登录："), briefIntro.lastIndexOf("，")).replace("最后登录：", "").split("-")
 
-        //get resource user info
-        const userinfo = $(".text-info")[1].children
+        //Get all user stats, with each of them being represented by a child.
+        const userinfo = $(".text-info")[1].children // textinfo is a containers with all the user stats, with each of them
+        //being represented by a child.
         const userintohtml = $(".text-info")[1].innerHTML
-        var diff = 0
+        var diff = 0;
+        
+        //Get the user registeration date/amount of cards sent.
+        const date = userinfo[0].innerHTML
+        const sendcard = userinfo[1].innerHTML
+        
+        //Determine if the user has a "success rate".  Note: Users who send less than 20 cards will not have their stats generated.
+        //Which, will cause the parent container "text-info" to shrink in size.
+        // The following part takes account of the issue.
+        
         if (userintohtml.includes("成功率"))
         {
+            //获取 "纯数字" 成功率
             var successrate = userinfo[2].innerHTML.replace("%", "")
 
         } else
         {
+            //The user does not have a success rate yet, mark as "Unknown";
             var successrate = "--"
             diff++;
         }
-        const date = userinfo[0].innerHTML
-        const sendcard = userinfo[1].innerHTML
-
+        // "3-diff" takes account of the size shrink. If the user info does not have success rate,
+        // we should get userinfo[2] instead of userinfo[3]
         const receivecard = userinfo[3 - diff].innerHTML
+        //same, some user doesn't have "registeration rate" either. In this case, the size of the parent container
+        // will shrink by 1.
         if (userintohtml.includes("登记率"))
         {
             var receiverate = userinfo[4 - diff].innerHTML.replace("%", "")
@@ -258,6 +271,19 @@
         $("head")[0].appendChild(s);
      
     }
+    
+    function initICYLottery(data)
+    {
+        if(!data["render"])
+        {
+            return;
+        }
+        
+        //load the script.
+        var s = document.createElement("script");
+        s.src="https://icyfile.85vocab.com/public/ICYDecider.js";
+        document.getElementsByTagName("head")[0].appendChild(s);
+    }
     ////////////////////////////MAIN MASTER//////////////////////////
 
     var xhr = new XMLHttpRequest();
@@ -272,6 +298,8 @@
         for (var i = 0, maxi = installedPlugins.length; i < maxi; i++)
         {
             //load plugins
+            // At here, the script checks which script the users has
+            // 
             var pluginname = installedPlugins[i];
             switch (pluginname) {
                 case "flowers":
@@ -283,6 +311,9 @@
                 case "autoRegister":
                     initAutoRegisteration(plugins[pluginname],userid);
                     break;
+                case "icylottery":
+                    initICYLottery(plugins[pluginname]);
+                    break;
                 default :
                     console.log("Not supported" + pluginname);
                     break;
@@ -291,7 +322,7 @@
 
     };
     xhr.onerror = () => {
-        alert("主页插件加载失败，请检查是否复制正确。")
+        alert("主页插件加载失败，请检查是否复制正确。若仍然失败，请把目前的主页链接私信Johnson.");
     };
     xhr.send();
 

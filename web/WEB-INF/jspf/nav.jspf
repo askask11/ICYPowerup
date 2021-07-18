@@ -22,11 +22,16 @@
                 <li>
 
                     <a href="ManagePanel" class="nav-link ${path.equals("/ManagePanel.jsp")?"active":""}">
-                        ICY账号管理
+                        控制面板
                     </a>
 
                 </li>
             </c:if>
+            <li>
+                <a href="https://www.wjx.cn/vj/raRZHBK.aspx" class="nav-link" target="_blank">
+                    反馈与建议
+                </a>
+            </li>
 
         </ul>
 
@@ -34,19 +39,25 @@
             <!--<a href="" class="nav-link">
                 注册
             </a>-->
-            <a href="${user==null?"login.jsp":"logout"}" class="nav-link ${path.equals("/login.jsp")?"active":""}">
+            <a href="${user==null?"login.jsp":"javascript:logoutMain()"}" class="nav-link ${path.equals("/login.jsp")?"active":""}">
                 ${user==null?"登录":"退出"}
             </a>
             <c:if test="${user!=null}">
                 <a class="nav-link" href="#userAccount"  data-toggle="modal" data-target="#userAccount">
                     <c:out value="${user.getUsername()}"></c:out>
-                </a>
+                    </a>
             </c:if>
         </div>
     </div>
 
 </nav>
-                
+<script>
+function logoutMain()
+{
+    window.localStorage.removeItem("token");
+    window.location.href="logout";
+}
+</script>                
 <c:if test="${user!=null}">
 
     <!-- Modal -->
@@ -61,24 +72,39 @@
                 </div>
                 <div class="modal-body">
                     管理您的账户：
-                    <div class="form-group">
+                    <form class="form-group" id="emailForm" onsubmit="changeEmail();
+                            return false;">
+
                         <label for="email">Email:</label>
-                        <input type="text" class="form-control" id="email" value="${user.getEmail()}">
-                    </div>
-                    <div class="form-group">
+                        <input required name="email" type="email" class="form-control form-inline" id="email" value="${user.getEmail()}">
+                        <input style="display:none;" type="text" name="verify" id="emailVerify" placeholder="验证码">
+                        <button type="submit" class="btn btn-success" id="emailConfBtn">
+                            OK
+                        </button>
+                    </form>
+                    <form class="form-group" id="passwordForm" onsubmit="changePassword();return false;">
                         <label for="password">密码:</label>
-                        <input type="text" class="form-control" id="password">
-                    </div>
-                    <div class="form-group">
+                        <input required type="text" class="form-control" id="password" >
+                        <button type="submit" class="btn btn-success" id="passwordConfBtn">
+                            OK
+                        </button>
+                        <input type="hidden" name="password" id="passwordr">
+                    </form>
+                    <form class="form-group" id="usernameForm" onsubmit="changeUsername(); return false;">
                         <label for="username">用户名:</label>
-                        <input type="text" class="form-control" id="username" value="${user.getUsername()}">
-                    </div>
+                        <input name="username" required type="text" class="form-control" id="username" value="${user.getUsername()}">
+                        <button type="submit" class="btn btn-success" id="usernameConfBtn">
+                            OK
+                        </button>
+                    </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
-                    <button type="button" class="btn btn-primary" onclick="Swal.fire('暂不支持修改','抱歉，相关信息请通知Johnson修改，谢谢','info')">保存</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+                    <!--<button type="button" class="btn btn-primary" onclick="Swal.fire('暂不支持修改','抱歉，相关信息请通知Johnson修改，谢谢','info')">保存</button>-->
                 </div>
             </div>
         </div>
     </div>
+
+
 </c:if>           

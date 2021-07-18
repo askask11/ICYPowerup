@@ -14,3 +14,7 @@
 <!-- Sweet alert -->
 <script src="//cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/askask11/weblib@master/css/lds-loader.css">
+<script src="https://cdn.jsdelivr.net/gh/placemarker/jQuery-MD5@master/jquery.md5.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/askask11/weblib@0.1-beta.1/css/animated-field.css" integrity="sha256-iEJJ2kYJy729hQJtUHrgdmjURlghCZaQyLl9nPLmdIo=" crossorigin="anonymous"><!-- comment -->
+<script src="js/account.js"></script>
+<link rel="stylesheet" href="css/switch.css"/>

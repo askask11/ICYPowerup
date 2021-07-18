@@ -28,6 +28,7 @@ Description: This document is created for index page
             }
             
         </style>
+        ${user==null?"":"<meta http-equiv='refresh' content='0; url=ManagePanel'>"}
     </head>
     <body>
         <!-- A grey horizontal navbar that becomes vertical on small screens -->
@@ -51,8 +52,7 @@ Description: This document is created for index page
                 </h4>
                 <p>
                     ICY Powerup 是一个第三方平台，为大家免费提供了一些可以在ICY网站使用的额外功能~
-                    比如主页飘下雪花，自定义的主页，（未来计划）背景音乐，收片动画，多彩站内信，智能活动管理，一键搜片友，
-                    明信片防重，以及自助过期补登等炫酷又实用的功能！目前正在内部测试，只有获得资格才能使用哦！<br><!-- comment -->
+                    比如主页飘下雪花，自定义的主页，一键防重，过期自助补登. 未来还计划背景音乐，收片动画，多彩站内信，智能活动管理，等炫酷又实用的功能！目前正在测试阶段，注册账号即可参与测试哦！<br><!-- comment -->
                     更重要的是，你<strong>不需要任何编程技术！</strong><br><!-- comment -->
                     就算你是电脑白痴，你也会感觉像技术
                     大佬一样~
@@ -74,11 +74,9 @@ Description: This document is created for index page
                     如何使用ICY Powerup?
                 </h4>
                 <p>
-                    目前处于内测阶段。
-                    请<a href="https://www.icardyou.icu/userInfo/homePage?userId=32364" target="_blank">站内信Johnson</a>,
-                    或联系Johnson的电子邮件vip@jianqinggao.com以获得账号。
-                    获取账号后，根据提示绑定自己的ICY账号即可实现各种炫酷的功能啦！<br>
-                    *部分功能可能不稳定
+                    第一次使用可以<a href="login.jsp">点击这里</a>，选择注册账号后即可注册啦！<br><!-- comment -->
+                    如果注册失败，请<a href="https://www.icardyou.icu/message/messageDetail?targetUserId=32364" target="_blank">站内信Johnson</a>
+                    获取账号密码~谢谢你的支持！
                 </p>
             </section>
             <br><!-- comment -->
@@ -87,13 +85,15 @@ Description: This document is created for index page
                     使用ICY Powerup会有白马王子降临吗？
                 </h4>
                 <p>
-                    此工具时不提供任何担保，保证。 当然，如果你使用了此工具以后，你会变得像柚子酱一样与众不同，吸引白马王子的几率也会随之增加。但是我们对
+                    此工具不提供任何担保，保证。 当然，如果你使用了此工具以后，你会变得像白马王子一样与众不同，吸引白马王子的几率也会随之增加。但是我们对
                     此不提供任何保证，也不提供售后服务。此工具的代码只代表作者的原意，如果你问我为什么还没有白马王子，别怪我
                     实际上那是火星人的错，是他们把白马王子绑架了，呜呜呜~<br>
-                    那柚子酱使用了此工具呢？这就得看柚子酱了. 但肯定的是，她还是比你们更与众不同。<br>
-                    如果对此感觉很sad，那就哭吧哭吧不是罪，<br>
+                   、
                 </p>
             </section>-->
+            <c:if test="${empty user}">
+                <script src="js/autologin.js"></script>
+            </c:if>
         </div>
     </body>
 </html>

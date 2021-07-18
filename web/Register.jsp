@@ -21,7 +21,7 @@
                 ${message2}
                 我们刚刚向您的邮箱发送了一个验证码，
                 <form target="_self" action="Register2" method="POST">
-                    <label for="vi">请输入邮箱验证码：</label>
+                    <label for="vi">请输入邮箱验证码（如果没有收到，请查找广告/垃圾邮件箱）：</label>
                     <input id="vi" required type="text" size="6" name="verify"> 
                     <button type="submit">
                         提交
