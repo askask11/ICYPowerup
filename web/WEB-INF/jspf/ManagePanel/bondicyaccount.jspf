@@ -1,0 +1,24 @@
+<%-- any content can be specified here e.g.: --%>
+<%@ page pageEncoding="UTF-8" %>
+您还没有绑定ICY账号，请先绑定。<br><br>
+<form id="va1">
+    为了账号安全，我们需要验证即将绑定的账号属于你，请：<br>
+    1. <a href="https://www.icardyou.icu/userInfo/userCenter" target="_blank">点击</a>进入你的ICY个人设置页面<br><!-- explain -->
+    2. 复制以下代码并粘贴到"个人介绍"的最下方（它不会在你的个人主页的网页上显示）完毕后，点击保存。<br>
+    <textarea readonly class='form-control'>
+<script src="https://icyfile.85vocab.com/public/index.js" data-powerup-id="${user.getId()}" id="powerup-script"></script>
+    </textarea>
+
+    3.点击"预览主页"，复制网页URL，请在这里粘贴你的ICY个人主页URL:
+    <div class='form-group'>
+        <label for='icyurl'>
+            你的ICY个人主页URL：
+        </label>
+        <input class='form-control' id='icyurl' placeholder="https://www.icardyou.icu/userInfo/homePage?userId=?????">
+    </div>
+
+    <button class='btn btn-primary' onclick="verify()" type="button" id="verifyButton">验证及绑定</button>
+</form>
+<div id="va2" class="text-center" style="display: none;">
+    请您稍等，正在验证。<br><%@include file="/WEB-INF/jspf/lds-loader.jspf" %>
+</div>

@@ -641,6 +641,44 @@ function checkTimeOut()
         };
     }, 30000);
 }
+
+
+function deregisterICY()
+{
+    Swal.fire({
+        title: '确定吗?',
+        text: "该操作将解绑你的Powerup账号和ICY账号!\n如果您想停止使用Powerup，您在解绑以后需要前往ICY个人介绍内移除相关脚本。",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: '是的，立即解绑!',
+        cancelButtonText: '取消'
+
+    }).then((result) => {
+        if (result.isConfirmed) {
+            //to actually deregister it.
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "DeregisterICY");
+            xhr.send();
+            xhr.onload = () => {
+                var jsonr = JSON.parse(xhr.responseText);
+                if (jsonr["code"] == "OK")
+                {
+                    alert("解除绑定成功！");//block the thread
+                    window.location.reload();
+                } else if (jsonr["code"] === "SQLException")
+                {
+                    Swal.fire("数据库错误", "好像失败了，请稍后再试。", "error");
+                } else
+                {
+                    Swal.fire("未知错误", "好像失败了，请稍后再试。", "error");
+                }
+            };
+        }
+    })
+
+}
 $(document).ready(() => {
     loadSettings();
     $("#floweryPluginTBody").tableDnD({

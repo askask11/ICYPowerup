@@ -5,9 +5,14 @@
  */
 package com.vocab85.icy.network;
 
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import cn.hutool.setting.Setting;
 import com.vocab85.icy.model.ICYPostcard;
 import com.vocab85.icy.model.User;
+import com.vocab85.icy.model.UserFavouriteItem;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -97,6 +102,8 @@ public class DBAccess implements AutoCloseable
         user.setToken(rs.getString("token"));
         user.setUsername(rs.getString("username"));
         user.setEmail(rs.getString("email"));
+        user.setHacks(rs.getBoolean("hacks"));
+        
 
         return user;
     }
@@ -252,6 +259,8 @@ public class DBAccess implements AutoCloseable
         return ps.executeBatch();
     }
 
+    
+    
     public int getLatestCrawledCardSeqId() throws SQLException
     {
         Statement s = dbConn.createStatement();
@@ -259,7 +268,52 @@ public class DBAccess implements AutoCloseable
         rs.next();
         return rs.getInt(1);
     }
+    
+    
+    
+    public JSONArray getUserFaviouriteById(int powerupid) throws SQLException
+    {
+        JSONObject row = null;
+        JSONArray results = JSONUtil.createArray();
+        PreparedStatement ps = dbConn.prepareStatement("SELECT * FROM userFavourite WHERE powerupid=? ORDER BY icyUserpingyin ASC");
+        ps.setInt(1, powerupid);
+        ResultSet rs = ps.executeQuery();
+        while(rs.next())
+        {
+            row = JSONUtil.createObj();
+            row.set("powerupid", powerupid);
+            row.set("icyid", rs.getInt("icyid"));
+            row.set("icyUsername", rs.getString("icyUsername"));
+            row.set("icyUserpingyin", rs.getString("icyUserpingyin"));
+            row.set("icyAvatarUrl", rs.getString("icyAvatarUrl"));
+            results.add(row);
+        }
+        
+       return results;
+    }
 
+    public int insertIntoUserFavourite(UserFavouriteItem item) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("INSERT INTO userFavourite VALUES(?,?,?,?,?)");
+        ps.setInt(1, item.getPowerupId());
+        ps.setInt(2, item.getIcyId());
+        ps.setString(3, item.getIcyUsername());
+        ps.setString(4,  StrUtil.sub(item.getIcyUserPingyin(), 0, 3));
+        ps.setString(5, item.getIcyAvatarUrl());
+        return ps.executeUpdate();
+    }
+    
+    public boolean isUserFavouriteExists(int powerupId, int icyId)throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("SELECT COUNT(*) FROM userFavourite WHERE powerupId=? AND icyid=?");
+        ResultSet rs;
+        ps.setInt(1, powerupId);
+        ps.setInt(2, icyId);
+        rs = ps.executeQuery();
+        rs.next();
+        return rs.getInt(1)>0;
+    }
+    
     public DBAccess()
     {
         dbConn = null;

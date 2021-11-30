@@ -27,7 +27,11 @@ $(document).ready(function () {
            if(data["code"]==="OK")
            {
                Swal.fire("登录成功","正在跳转","success");
-               window.location.href = "ManagePanel";
+               //get next page
+               const queryStr = window.location.search;
+               const params = new URLSearchParams(queryStr);
+               const next = params.get("next");
+               window.location.href = next===null?"ManagePanel":next;
                return;
            }
            Swal.fire("自动登录失败","自动登录信息已过期，请重新登录。","warning");

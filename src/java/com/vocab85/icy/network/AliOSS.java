@@ -5,6 +5,8 @@
  */
 package com.vocab85.icy.network;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.setting.Setting;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
@@ -14,7 +16,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.util.Date;
 
 /**
  *
@@ -78,10 +80,25 @@ public class AliOSS
         return oo;
     }
     
+    
+    public static void logError(Throwable t)
+    {
+        String error = ExceptionUtil.stacktraceToString(t);
+        uploadString("debug/"+DateUtil.today()+"/err-"+DateUtil.format(new Date(), "HH:mm:ss")+"-"+error.length()+".txt", error);
+    }
+    
     //public static void upl
 
     public static void main(String[] args) throws MalformedURLException, IOException
     {
-        
+        try
+        {
+            Integer.parseInt("shabi");
+            System.out.println("OK");
+        } catch (Exception e)
+        {
+            logError(e);
+            System.out.println("Done!");
+        }
     }
 }

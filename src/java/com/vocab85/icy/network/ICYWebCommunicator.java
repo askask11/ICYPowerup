@@ -18,6 +18,7 @@ import cn.hutool.json.JSONUtil;
 import cn.hutool.setting.Setting;
 import com.vocab85.icy.controller.Servlet;
 import com.vocab85.icy.model.ICYPostcard;
+import com.vocab85.icy.model.ICYUser;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -66,6 +67,37 @@ public class ICYWebCommunicator
         return h3.html().trim();
     }
 
+    public static ICYUser getICYUserProfile(String userId)
+    {
+        ICYUser u = new ICYUser();
+        u.setId(userId);
+        //crawl user page
+        
+        String url = "https://www.icardyou.icu/userInfo/homePage?userId=" + userId;
+        String content = HttpUtil.downloadString(url, "UTF-8");
+        Document document = Jsoup.parse(content);
+        
+        //get user's Username
+        Element h3 = document.getElementsByTag("h3").get(0);
+        u.setUsername(h3.html().trim());
+        
+        //get user's avatar address
+        Element avatarImage = document.getElementsByTag("img").get(2);
+        u.setAvatarUrl(avatarImage.attr("src"));
+        
+        //get user's power up 
+        Element scriptTag = document.getElementById("powerup-script");
+        //no such element, the user didn't input the element there.
+        if (scriptTag != null)
+        {
+            u.setPowerupId(scriptTag.attr("data-powerup-id"));
+        }
+        
+        return u;
+        
+    }
+    
+    
     private static int getLastPageFromURI(String[] urifrgs)
 
     {
@@ -189,8 +221,11 @@ public class ICYWebCommunicator
     public static JSONObject getPostcardPicWithUser(String icyid, String targetId, int mode)
     {
         // From given id, visit the user's home page to get the user's username, to generate the URL.
-        String username = getUsernameByIcyId(icyid);
-        String receiver = getUsernameByIcyId(targetId);
+        
+        
+        String username = "你";//getUsernameByIcyId(icyid);
+        ICYUser targetUser = getICYUserProfile(targetId);
+        String receiver = targetUser.getUsername();
 
         String cookie = "user-info=" + icyid + ";" + username + ";" + "2021-01-01;2;1;0"; // user cookie
         // Create the JSONArray
@@ -198,6 +233,8 @@ public class ICYWebCommunicator
         JSONObject root = JSONUtil.createObj();
         root.set("sender", URLEncoder.createDefault().encode(username, Charset.forName("UTF-8")));
         root.set("receiver", StrUtil.isEmpty(receiver) ? "Ta" : URLEncoder.createDefault().encode(receiver, Charset.forName("UTF-8")));
+        root.set("receiverId", targetId);
+        root.set("receiverAvatarUrl", targetUser.getAvatarUrl());
         switch (mode)
         {
             case 3:
@@ -353,12 +390,13 @@ public class ICYWebCommunicator
         return crawlICYCards(lat + 1, lat + 1 + increment,listener);
     }
     
-    public static void searchFriendByMainpageKeyword()
+    public static String searchFriendByMainpageKeyword(String keyword)
     {
-         HttpRequest req = HttpUtil.createGet("https://www.icardyou.icu/sendpostcard/myPostCard/" + "1" + "?status=&cardType=&nowPage=" + "3");
+        //Request the send postcard page.
+        HttpRequest req = HttpUtil.createGet("https://www.icardyou.icu/sendpostcard/myPostCard/" + "1" + "?status=&cardType=&nowPage=" + "3");
         req.cookie("user-info=32364%3BJohnson%3B2003-04-08%3B2%3B1%3B18");//set user auth cookie
-        HttpResponse resp = req.execute();
-        Document document = Jsoup.parse(resp.body());
+        HttpResponse resp = req.execute();//dispatch request
+        Document document = Jsoup.parse(resp.body());//load response body, pass result from HttpRequest to Jsoup, let Jsoup handle the rest.
         Elements trs = document.getElementsByTag("tr");//get all table rows of the "send postcard page"
         for (int j = 1; j < trs.size(); j++)//skip the first row, it is the table header.
         {
@@ -367,10 +405,11 @@ public class ICYWebCommunicator
             Element tr = trs.get(j);
             //get the 4th column of the row, 
             Element usernametd = tr.getElementsByTag("td").get(3);
-            //read the userid from href (<a> tag), which is the username.
+            //Read the userid from href of the <a> tag 
+            //Example: <a href="https://www.icardyou.icu/1234567">Johnson</a>
             String href = usernametd.getElementsByTag("a").attr("href");
             System.out.println(href);
-            req = HttpRequest.get("https://www.icardyou.icu/"+href);
+            req = HttpRequest.get(href);
             
             resp = req.execute();
             
@@ -384,14 +423,26 @@ public class ICYWebCommunicator
             }
             Element well = wells.get(0);
             System.out.println(well.text());
-            if(well.text().contains("收集癖"))
+            if(well.text().contains(keyword))
             {
                 
                 System.out.println(href);
-                return;
+                return href;
             }
             
         }
+        return "404";
+    }
+    
+    
+    public static void uploadImageICY(byte[] imagebyte, String fileName, String postcardId, String userId, String uploader)
+    {
+        HttpRequest request = HttpUtil.createPost("https://www.icardyou.icu/sendpostcard/uploadImg");
+        request.form("file", imagebyte, fileName);
+        request.form("cardId", postcardId);
+        request.cookie("user-info="+userId+";"+uploader+";2000-1-1;2;2;0");
+        HttpResponse resp = request.execute();
+        
     }
 
     public static void main(String[] args) throws IOException, InterruptedException

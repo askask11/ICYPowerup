@@ -26,6 +26,9 @@
                     </a>
 
                 </li>
+                
+                
+                
             </c:if>
             <li>
                 <a href="https://www.wjx.cn/vj/raRZHBK.aspx" class="nav-link" target="_blank">
@@ -57,7 +60,9 @@ function logoutMain()
     window.localStorage.removeItem("token");
     window.location.href="logout";
 }
-</script>                
+</script>          
+
+<%--Put user setting panel here.--%>
 <c:if test="${user!=null}">
 
     <!-- Modal -->

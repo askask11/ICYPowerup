@@ -1,0 +1,121 @@
+<%-- any content can be specified here e.g.: --%>
+<%@ page pageEncoding="UTF-8" %>
+
+<div id="menu1" class="container tab-pane fade"><br>
+    <img width="16" src="https://xeduocdn.sirv.com/icons/q.png" style="cursor:pointer;" data-toggle="modal" data-target="#mdyjfc">
+
+    搜索条件：
+    <input type="radio" id="st1" name="st" class="stsel" checked>
+    <label for="st1">
+        主页链接
+    </label>
+
+    <input type="radio" id="st2" name="st" class="stsel">
+    <label for="st2">
+        昵称
+    </label>
+    <input type="radio" id="st3" name="st" class="stsel" disabled>
+    <label for="st3">
+        收藏夹(即将上线)
+    </label>
+    <br>
+    
+    
+    显示明信片类别：
+    <select id="searchFilter">
+        <option value="1" selected>
+            我发给Ta的
+        </option>
+        <option value="2">
+            Ta发给我的
+        </option>
+        <option value="3">
+            所有交换过的
+        </option>
+    </select>
+
+    <%--搜索选项1：主页URL搜索--%>
+    <div id="st1-div">
+
+
+
+        <div  class="animated-text-input-container text-center" style="margin: auto; width:100%;">
+            <input id="friendurl" type="text" required title="好友主页URL">
+            <label class="label-name"><span class="content-name">输入片友主页URL:</span></label>
+
+            <!--
+            <input type="text" class="form-control st1" id="friendurl" placeholder="https://www.icardyou.icu/userInfo/homePage?userId=xxxxx" autocomplete="on" >
+            <!--<img src="Captcha" onclick="this.src = 'Captcha'"><input id="searchCaptcha" size="4" placeholder="验证码">-->                  
+
+        </div> 
+        <button class="btn btn-primary" onclick="submitSearchCardClick();">
+            查找
+        </button>
+
+    </div>
+
+
+    <%--搜索选项2：昵称搜索--%>
+    <div id="st2-div" style="display:none;">
+        <div class="input-group" id="nicknameforid">
+            <input type="text" class="form-control st2" id="friendid" placeholder="输入昵称搜片友">
+            <button onclick="searchForId()" class="btn btn-success st2" id="sfcfcfbt">
+                搜索片友
+            </button><!-- 搜索结果 -->
+        </div>
+        
+        <%--搜索结果--%>
+        <table class="table table-striped">
+            <thead>
+            <td>
+                选择
+            </td> 
+            <td>
+                头像
+            </td> 
+            <td>
+                昵称
+            </td> 
+
+            </thead>
+            <tbody id="searchResult">
+                <tr>
+                    <td>
+
+                    </td> 
+                    <td>
+
+                    </td> 
+                    <td>
+
+                    </td> 
+                </tr>
+            </tbody>
+        </table>
+        
+        
+        
+        <br><!-- comment -->
+        选择完毕后点击：
+        <button class="btn btn-primary" onclick="submitSearchCardClick();">
+            确认并查找
+        </button>
+    </div>
+
+
+    <br>
+
+    <p>
+        这是<span id="sender">你</span>和<span id="xhbid">这位小伙伴</span>交换过的片(已上传照片的)：
+        <a id="favbtn" href="javascript:favouriteUser();" style="display: none; float: right;">收藏此片友</a>
+    </p>
+    <hr>
+    <div id="pylink" class="text-center">
+        
+    </div>
+
+
+
+</div> 
+<!--一键防重弹出窗口帮助-->
+<%@include file="/WEB-INF/jspf/ManagePanel/searchcards-help-modal-frag.jspf" %>

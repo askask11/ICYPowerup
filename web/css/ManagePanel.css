@@ -1,0 +1,77 @@
+/*
+Author: jianqing
+Date: Nov 22, 2021
+Description: This document is created for Manage Panel
+*/
+
+body
+{
+    background-image:  url('https://xeduocdn.sirv.com/Images/aesthetic-anime-01.jpg');
+} 
+.translucent
+{
+    background-color: rgba(255,255,255,0.85);
+}
+.je{
+
+    /*height: initial !important;*/
+    border-radius: initial !important;
+    margin-right: initial !important;
+    border: initial !important;
+}
+.transparent
+{
+    background-color: rgba(255,255,255,0);
+    border:0px;
+
+}
+.transparent.width-input, .transparent.height-input
+{
+    border-bottom: 1px black ridge;
+    width:50px;
+}
+.lds-roller div:after
+{
+    background-color: dodgerblue;
+}
+
+
+.preview-img-container
+{
+    overflow: scroll;
+    max-width: 300px;
+    max-height: 300px;
+}
+
+.search-friend-container
+{
+
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+
+}
+
+.search-friend-caption
+{
+    margin-top: 16px;
+
+}
+
+.colParent
+{
+
+    margin-bottom: 30px;
+}
+.grecaptcha-badge { visibility: hidden; }
+.footer
+{
+
+    width: 100%;
+}
+.preview-cf-img
+{
+    width:30px;
+}

@@ -22,7 +22,10 @@ public class User
     private String token;
     
     private String email;
+    private boolean hacks;
     //private boolean icyVerified;
+    
+    
 
     public boolean isIcyVerified()
     {

@@ -1,0 +1,42 @@
+    <%-- 
+ Only the help popup of the search card function.
+一键防重功能帮助的弹出窗口。
+--%>
+<%@ page pageEncoding="UTF-8" %>
+ <!-- 一键防重介绍帮助 -->
+    <div class="modal fade" id="mdyjfc" tabindex="-1" role="dialog" aria-labelledby="mdyjfclabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mdyjfclabel">一键防重</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h4>一键防重是什么？</h4><!-- comment -->
+                    一键防重可以方便地把你和任意一位片友所交换过的明信片列在一个页面上，方便你查询和这位片友所有交换片的照片。
+                    <br>这里只能查询到在ICY上存在编号的，存在照片的明信片。不存在照片的明信片将会被忽略。
+                    <br><!-- comment -->
+                    <h4>怎么搜索片友？</h4>
+                    您可以通过一个片友的主页URL来定位片友，也可以通过昵称搜索定位片友。<br>
+                    如果通过主页URL定位，只需把片友主页URL粘贴即可。
+                    <br>如果通过昵称定位片友，请在"搜索条件"选择昵称，然后输入片友的昵称。点击"搜索片友"，系统会找出前10位符合
+                    搜索条件的小伙伴显示在名单上，和他们的头像。 点击左侧的单选框选择小伙伴，
+                    然后点击"确认并查找"即可查找和该片友换过的片。
+                    <h4>声明</h4>
+                    使用此功能，代表您同意我们ICY Powerup系统使用您的ICY账号查询您的历史收发记录和片友信息。<br>
+                    该功能仅做便民查询，和Powerup官方无关。<br>
+                    为保证服务质量，该功能由谷歌隐形验证码保护，继续使用代表您同意谷歌(Google)的<a href="https://policies.google.com/privacy" target="_blank">
+                        隐私政策
+                    </a>以及<a href="https://policies.google.com/terms" target="_blank">
+                        服务条款
+                    </a>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>

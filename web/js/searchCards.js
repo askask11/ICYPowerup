@@ -3,19 +3,70 @@
  * Date: May 16, 2021
  * Description: This document is created for
  */
+var onTargetUser = null;
+function loadFavourites()
+{
+
+}
+
+//switch search method
 $(".stsel").click(function () {
     if ($("#st1")[0].checked)
     {
         //search use URL show
+
         $("#st1-div").fadeIn();
         $("#st2-div").fadeOut();
-    } else
+    } else if (document.getElementById("st2").checked)
     {
+        ///console.log("2")
         $("#st1-div").fadeOut();
         $("#st2-div").fadeIn();
-
+        $("#nicknameforid").fadeIn();
+        document.getElementById("searchResult").innerHTML = "";
+    } else
+    {
+        //console.log("3")
+        $("#st1-div").fadeOut();
+        $("#st2-div").fadeIn();
+        $("#nicknameforid").fadeOut();
+        document.getElementById("searchResult").innerHTML = "";
     }
 });
+
+
+function createSearchResultRow(id, imgsrc, name)
+{
+    const row = document.createElement("tr");
+    const col1 = document.createElement("td");
+    const col2 = document.createElement("td");
+    const col3 = document.createElement("td");
+    //const col4 = document.createElement("td");
+    const radio = document.createElement("input");
+    const nameEle = document.createElement("a");
+    const imageEle = document.createElement("img");
+    radio.name = "sr";
+    radio.type = "radio";
+    radio.value = id;
+//        radio.style.setProperty("margin-left","10px");
+//        radio.style.setProperty("margin-right","10px");
+    nameEle.innerHTML = name;
+    nameEle.href = "https://www.icardyou.icu/userInfo/homePage?userId=" + id;
+    nameEle.title = "点击前往" + name + "的主页";
+    nameEle.target = "_blank";
+    //name.style.setProperty("margin-left","10px");
+    imageEle.setAttribute("referrerpolicy", "no-referrer");
+    imageEle.classList.add("preview-cf-img");
+    imageEle.src = imgsrc + "";
+
+    col1.appendChild(radio);
+    col2.appendChild(imageEle);
+    col3.appendChild(nameEle);
+    row.appendChild(col1);
+    row.appendChild(col2);
+    row.appendChild(col3);
+    return row;
+}
 
 function searchForId()
 {
@@ -32,41 +83,10 @@ function searchForId()
         btn.disabled = false;
         btn.innerHTML = "搜索片友";
     }
-    
+
     disableBtn();
 
-    function createSearchResultRow(id, imgsrc, name)
-    {
-        const row = document.createElement("tr");
-        const col1 = document.createElement("td");
-        const col2 = document.createElement("td");
-        const col3 = document.createElement("td");
-        //const col4 = document.createElement("td");
-        const radio = document.createElement("input");
-        const nameEle = document.createElement("a");
-        const imageEle = document.createElement("img");
-        radio.name = "sr";
-        radio.type = "radio";
-        radio.value = id;
-//        radio.style.setProperty("margin-left","10px");
-//        radio.style.setProperty("margin-right","10px");
-        nameEle.innerHTML = name;
-        nameEle.href = "https://www.icardyou.icu/userInfo/homePage?userId=" + id;
-        nameEle.title = "点击前往" + name + "的主页";
-        nameEle.target = "_blank";
-        //name.style.setProperty("margin-left","10px");
-        imageEle.setAttribute("referrerpolicy", "no-referrer");
-        imageEle.classList.add("preview-cf-img");
-        imageEle.src = imgsrc + "";
 
-        col1.appendChild(radio);
-        col2.appendChild(imageEle);
-        col3.appendChild(nameEle);
-        row.appendChild(col1);
-        row.appendChild(col2);
-        row.appendChild(col3);
-        return row;
-    }
     var val = $("#friendid")[0].value;
     if (!val)
     {
@@ -79,7 +99,7 @@ function searchForId()
     xhr.open("GET", "SearchId?name=" + encodeURIComponent(val));
     xhr.onload = function () {
         enableBtn();
-        
+
         var jsonr = JSON.parse(xhr.responseText);
         if (jsonr["code"] === "OK")
         {
@@ -234,10 +254,13 @@ function submitForSearch(userId, token = "", captcha = "")
             var jsonr = JSON.parse(xhr.responseText);
             if (jsonr["code"] === "OK")
             {
+                $("#favbtn").fadeIn("fast");
+                onTargetUser = jsonr["data"];
                 //do things
-                var data = jsonr["data"]["list"];
-                var sender = decodeURIComponent(jsonr["data"]["sender"]);
-                var receiver = decodeURIComponent(jsonr["data"]["receiver"]);
+                var data = onTargetUser["list"];
+
+                var sender = decodeURIComponent(onTargetUser["sender"]);
+                var receiver = decodeURIComponent(onTargetUser["receiver"]);
                 $("#sender").html(sender);
                 $("#xhbid").html(receiver);
                 var row = document.createElement("div");
@@ -257,7 +280,7 @@ function submitForSearch(userId, token = "", captcha = "")
                     imgElement.setAttribute("referrerpolicy", "no-referrer");
                     imgElement.style.setProperty("width", "100%");
                     imgElement.setAttribute("onclick", "window.open(this.src,'_blank');");
-                    imgElement.setAttribute("SameSite", "Strict")
+                    imgElement.setAttribute("SameSite", "Lax");
                     //the Postcard ID
                     imgCommentA.href = img["pcsrc"];
                     imgCommentA.innerHTML = img["id"];
@@ -305,6 +328,15 @@ function submitForSearch(userId, token = "", captcha = "")
                 Swal.fire("未知错误", "错误未知", "error");
             }
 
+            //show/hide favourite
+            if (jsonr["code"] === "OK")
+            {
+                $("#favbtn").show();
+            } else
+            {
+                $("#favbtn").hide();
+            }
+
         }
     };
 
@@ -316,41 +348,37 @@ function submitForSearch(userId, token = "", captcha = "")
     xhr.send(JSON.stringify(data));
 }
 
-function deregisterICY()
+
+function favouriteUser()
 {
-    Swal.fire({
-        title: '确定吗?',
-        text: "该操作将解绑你的Powerup账号和ICY账号!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: '是的，立即解绑!',
-        cancelButtonText: '取消'
+    //check if it is on active user
+    if (onTargetUser === null)
+    {
+        Swal.fire("请先指定用户", "需要先搜索用户", "error");
+        return;
+    }
 
-    }).then((result) => {
-        if (result.isConfirmed) {
-            //to actually deregister it.
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", "DeregisterICY");
-            xhr.send();
-            xhr.onload = () => {
-                var jsonr = JSON.parse(xhr.responseText);
-                if (jsonr["code"] == "OK")
-                {
-                    alert("解除绑定成功！");//block the thread
-                    window.location.reload();
-                } else if (jsonr["code"] === "SQLException")
-                {
-                    Swal.fire("数据库错误", "好像失败了，请稍后再试。", "error");
-                } else
-                {
-                    Swal.fire("未知错误", "好像失败了，请稍后再试。", "error");
-                }
-            };
+    $("#favbtn").html("请稍等...正在收藏")
+    //try to submit fav request
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "AddFavouriteUser?icyUsername=" + onTargetUser["receiver"] + "&icyId=" + onTargetUser["receiverId"] + "&icyAvatarUrl=" + onTargetUser["receiverAvatarUrl"]);
+    xhr.send();
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            var jsonr = JSON.parse(xhr.responseText);
+            var code = jsonr["code"];
+            switch (code)
+            {
+                case "OK":
+                    Swal.fire("收藏成功", "TA已添加到您的收藏夹中", "success");
+                    break;
+                case "FavExists":
+                    Swal.fire("已收藏", "TA已经被收藏过了哦！", "info");
+                    break;
+                default:
+                    Swal.fire("系统错误", "代码：" + code + "error");
+                    break;
+            }
         }
-    })
-
+    }
 }
-
-

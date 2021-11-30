@@ -24,6 +24,7 @@ import com.aliyun.oss.OSSException;
 import com.aliyun.oss.model.OSSObject;
 import com.vocab85.icy.model.MailUtilBetter;
 import com.vocab85.icy.model.User;
+import com.vocab85.icy.model.UserFavouriteItem;
 import com.vocab85.icy.network.AliOSS;
 import com.vocab85.icy.network.DBAccess;
 import com.vocab85.icy.network.ICYWebCommunicator;
@@ -48,6 +49,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import static com.vocab85.icy.network.AliOSS.logError;
+
 /**
  *
  * @author jianqing
@@ -57,7 +60,8 @@ import javax.servlet.http.HttpSession;
     "/index", "/login", "/ManagePanel", "/doLogin", "/logout", "/verifyIcy",
     "/SavePluginSettings", "/UpFile", "/GetTimeout", "/DeleteFile", "/DeregisterICY",
     "/SearchCards", "/Captcha", "/SearchId", "/RegisterExpiredCards", "/Hacks", "/Hacks2",
-    "/Register", "/Register2", "/ChangePassword", "/ChangeUsername", "/ChangeEmail", "/PasswordRecovery", "/PasswordRecovery2", "/PasswordRecovery3"
+    "/Register", "/Register2", "/ChangePassword", "/ChangeUsername", "/ChangeEmail", "/PasswordRecovery", "/PasswordRecovery2", "/PasswordRecovery3",
+    "/GetFavourite", "/UploadICYPhoto", "/AddFavouriteUser"
 })
 public class Servlet extends HttpServlet
 {
@@ -136,12 +140,17 @@ public class Servlet extends HttpServlet
             case "/RegisterExpiredCards":
                 processAutoRegisterGET(request, response);
                 break;
-           
+            case "/GetFavourites":
+                processGetFavourites(request, response);
+                break;
 
             case "/DeleteFile":
-            // processDeleteFileGET(request, response);
-            // break;
-
+                // processDeleteFileGET(request, response);
+                // break;
+                break;
+            case "/AddFavouriteUser":
+                processAddFavouriteUserGET(request, response);
+                break;
             default:
                 processRequest(request, response);
                 break;
@@ -217,6 +226,9 @@ public class Servlet extends HttpServlet
             case "/PasswordRecovery3":
                 processPasswordRecovery3POST(request, response);
                 break;
+            case "/UploadICYPhoto":
+                processUploadICYPhotoPOST(request, response);
+                break;
             default:
                 processRequest(request, response);
                 break;
@@ -249,6 +261,7 @@ public class Servlet extends HttpServlet
         {
             Logger.getLogger(Servlet.class.getName()).log(Level.SEVERE, null, ex);
             log("THE SERVLET FAILED TO START.");
+            logError(ex);
         }
 
     }
@@ -263,9 +276,126 @@ public class Servlet extends HttpServlet
         } catch (SQLException ex)
         {
             Logger.getLogger(Servlet.class.getName()).log(Level.SEVERE, null, ex);
+            logError(ex);
         }
     }
 // </editor-fold>
+
+    protected void processAddFavouriteUserGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        //initalize parameters
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        //receive parameter icyUsername, icyId, icyAvatarUrl from request
+        //String icyUsername, icyId, icyAvatarUrl;
+        UserFavouriteItem ufi = new UserFavouriteItem();
+        JSONObject jsonr = JSONUtil.createObj();
+        try (PrintWriter pw = response.getWriter())
+        {
+            //check if user has logged in
+            if (user == null)
+            {
+                processNoLogin(jsonr, response);
+                jsonr.write(pw);
+                return;
+            }
+            //get param userid from session
+            ufi.setIcyId(user.getId());
+            //get other params from request
+            ufi.setIcyUsername(request.getParameter("icyUsername"));
+            ufi.setIcyId(Integer.parseInt(request.getParameter("icyId")));
+            ufi.setIcyAvatarUrl(request.getParameter("icyAvatarUrl"));
+
+            try (DBAccess dba = DBAccess.getDefaultInstance())
+            {
+                if (dba.isUserFavouriteExists(ufi.getPowerupId(), ufi.getIcyId()))
+                {
+                    processStatus(jsonr, "User Favourite Exists", "FavExists", 400, response);
+                } else
+                {
+                    dba.insertIntoUserFavourite(ufi);
+                    processOK(jsonr, "", response);
+                }
+
+            } catch (SQLException sqle)
+            {
+                processSQLException(jsonr, sqle, response);
+            }
+            jsonr.write(pw);
+        } catch (Exception e)
+        {
+            logError(e);
+        }
+    }
+
+    protected void processUploadICYPhotoPOST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+
+        User user = (User) session.getAttribute("user");
+
+        JSONObject jsonr = JSONUtil.createObj();
+
+        MultipartFormData formData = ServletUtil.getMultipart(request);
+        UploadFile icyImage = formData.getFile("image");
+        String postcardURL = formData.getParam("postcardURL");
+        //String uploader = formData.getParam("uploader");
+        String[] pcurlcomp = postcardURL.split("/");
+        String posrcardId = pcurlcomp[pcurlcomp.length - 1];
+        try (PrintWriter pw = response.getWriter())
+        {
+            if (user == null)
+            {
+                processNoLogin(jsonr, response);
+                jsonr.write(pw);
+                return;
+            }
+
+            ///TODO: COMMUNICATE WITH ICY SERVER.
+            try
+            {
+                ICYWebCommunicator.uploadImageICY(icyImage.getFileContent(), icyImage.getFileName(), posrcardId, user.getIcyid(), user.getUsername());
+            } catch (IOException ex)
+            {
+                processStatus(jsonr, ex.getMessage(), "Error", 500, response);
+            } finally
+            {
+                processOK(jsonr, null, response);
+            }
+            jsonr.write(pw);
+        }
+    }
+
+    protected void processGetFavourites(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+
+        User user = (User) session.getAttribute("user");
+
+        JSONObject jsonr = JSONUtil.createObj();
+
+        try (PrintWriter pw = response.getWriter())
+        {
+            if (user == null)
+            {
+                processNoLogin(jsonr, response);
+                jsonr.write(pw);
+                return;
+            }
+
+            try (DBAccess dba = DBAccess.getDefaultInstance())
+            {
+                JSONArray result = dba.getUserFaviouriteById(user.getId());
+                processStatus(jsonr, result, "OK", 200, response);
+                jsonr.write(pw);
+            } catch (Exception ex)
+            {
+                ex.printStackTrace();
+                processSQLException(jsonr, ex, response);
+            }
+        }
+
+    }
 
     protected void processPasswordRecovery3POST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
@@ -284,7 +414,8 @@ public class Servlet extends HttpServlet
             return;
         }
 
-        if (!StrUtil.equals(verifyCode, verifyInput))
+        // Check for email verify code. 
+        if (!StrUtil.equals(verifyCode.toUpperCase(), verifyInput.toUpperCase()))
         {
             setMessage(session, "抱歉，邮箱验证码错误，请重试。");
             response.sendRedirect("PasswordRecovery2");
@@ -300,6 +431,7 @@ public class Servlet extends HttpServlet
         } catch (Exception e)
         {
             setMessage(session, "出了点问题，请稍候再试。");
+            logError(e);
             response.sendRedirect("PasswordRecovery2");
         }
 
@@ -339,7 +471,7 @@ public class Servlet extends HttpServlet
                 return;
             }
 
-            MailUtilBetter.sendVerifyText("", verify, email);
+            MailUtilBetter.sendPasswordRecoveryText(verify, email);
             session.setAttribute("emailVerifyPR", verify);
             session.setAttribute("emailPR", email);
             session.removeAttribute("message");
@@ -349,9 +481,11 @@ public class Servlet extends HttpServlet
         } catch (SQLException sqle)
         {
             setMessage(session, "数据库出错了，呜呜呜呜。");
+            logError(sqle);
             response.sendRedirect("PasswordRecovery");
         } catch (Exception ex)
         {
+            logError(ex);
             setMessage(session, "验证邮件发送失败了，呜呜呜呜呜。");
             response.sendRedirect("PasswordRecovery");
         }
@@ -377,6 +511,7 @@ public class Servlet extends HttpServlet
                 user.setUsername(username);
             } catch (Exception e)
             {
+
                 processSQLException(jsonr, e, response);
             }
             jsonr.write(pw);
@@ -534,7 +669,7 @@ public class Servlet extends HttpServlet
             return;
         }
 
-        if (!StrUtil.equals(verify, userr.get("verify")))
+        if (!StrUtil.equals(verify.toUpperCase(), userr.get("verify").toUpperCase()))
         {
             session.setAttribute("successr", false);
             session.setAttribute("redo", true);
@@ -632,6 +767,7 @@ public class Servlet extends HttpServlet
         } catch (Exception d)
         {
             d.printStackTrace();
+            logError(d);
             session.setAttribute("successv", false);
             session.setAttribute("message", "很抱歉，注册失败,<br>"
                     + "原因：<strong id='reason'>邮件发送失败或邮箱不合法</strong><br>"
@@ -688,7 +824,7 @@ public class Servlet extends HttpServlet
                 processOK(jsonr, h, response);
             } catch (Exception e)
             {
-                processSQLException(jsonr, "false", response);
+                processSQLException(jsonr, e, response);
             }
             jsonr.write(p);
 
@@ -743,8 +879,7 @@ public class Servlet extends HttpServlet
                 OSSObject oo = AliOSS.getUserMasterJSON(userId);
                 if (oo.getResponse().isSuccessful())
                 {
-                    
-                    
+
                     //check user function status, see if user has turned on this function
                     JSONObject jsonoo = JSONUtil.parseObj(IoUtil.read(oo.getObjectContent(), "UTF-8"));
                     Boolean isOpen = jsonoo.getJSONObject("plugins").getJSONObject("autoRegister").getBool("render");
@@ -754,22 +889,22 @@ public class Servlet extends HttpServlet
                         jsonr.write(pw);
                         return;
                     }
-                    
+
                     //check card status
                     //card info is the one that actually crawl from the web.
-                     //go to register the card
+                    //go to register the card
                     String cardURLId = db.getCardSeqByCardId(pcid);
-                    
-                    if(cardURLId==null)
+
+                    if (cardURLId == null)
                     {
                         processStatus(jsonr, "The indicated card ID could not be found at the database yet.", "NotFound", 400, response);
                         jsonr.write(pw);
                         return;
                     }
                     //warning
-                    
+
                     String[] cardInfo = ICYWebCommunicator.getCardInfo(cardURLId);
-                    if(cardInfo==null)
+                    if (cardInfo == null)
                     {
                         processStatus(jsonr, "The card ID not in record.", "NotFound", 400, response);
                         jsonr.write(pw);
@@ -786,27 +921,22 @@ public class Servlet extends HttpServlet
                         jsonr.write(pw);
                         return;
                     }
-                    
-                    
-                    
+
                     //try to autoregister it for user
                     User user = db.getUserByUserId(Integer.parseInt(userId));
                     String icyid = user.getIcyid();
 
-                   
                     JSONObject registerJSON = ICYWebCommunicator.registerCardForUser(icyid, pcid);
-                    
-                    
-                    
+
                     //get registeration message
                     processOK(jsonr, registerJSON, response);
-                    
+
                     //write back to the client
                     //jsonr.write(pw); it is done at the last step.
                     //send an email to the user
                     String userEmail = user.getEmail();
-                    
-                    if(StrUtil.isNotBlank(userEmail)&&registerJSON.getInt("resultCode")==200)
+
+                    if (StrUtil.isNotBlank(userEmail) && registerJSON.getInt("resultCode") == 200)
                     {
                         MailUtilBetter.sendText(user.getEmail(), "【ICY过期自助补登】" + pcid + "已由站内小伙伴自助登记", ""
                                 + "您好，\n"
@@ -815,7 +945,7 @@ public class Servlet extends HttpServlet
                                 + ""
                                 + "ICY Powerup 敬上");
                     }
-                   
+
                 } else
                 {
                     //the user did not bond successfully, no setting file found.
@@ -825,6 +955,7 @@ public class Servlet extends HttpServlet
 
             } catch (JSONException je)
             {
+                logError(je);
                 processStatus(jsonr, je, "Error", 400, response);
 
             } catch (SQLException selq)
@@ -900,7 +1031,9 @@ public class Servlet extends HttpServlet
                     processOK(jsonr, "", response);
                 } catch (com.aliyun.oss.OSSException osse)
                 {
+
                     processStatus(jsonr, osse, "OSSException", 400, response);
+                    logError(osse);
                 }
             }
             jsonr.write(pw);
@@ -937,11 +1070,10 @@ public class Servlet extends HttpServlet
             try (DBAccess db = DBAccess.getDefaultInstance())
             {
                 //login by token or email or username/password
-                if(StrUtil.isNotBlank(token))
+                if (StrUtil.isNotBlank(token))
                 {
                     user = db.getUserByToken(token);
-                }
-                else if (isEmail(username))
+                } else if (isEmail(username))
                 {
                     user = db.getUserByEmail(username, password);
                     if (user == null)
@@ -953,21 +1085,19 @@ public class Servlet extends HttpServlet
                 {
                     user = db.getUser(username, password);
                 }
-                
-                
 
                 if (user == null)
                 {
                     processStatus(retJSON, "DNE", "NoSuchUser", 400, response);
                 } else
                 {
-                 //remember user
-                if(StrUtil.equals(remember, "true"))
-                {
-                    token = RandomUtil.randomString(19);
-                    user.setToken(token);
-                    db.setUserToken(user.getId(), token);
-                }
+                    //remember user
+                    if (StrUtil.equals(remember, "true"))
+                    {
+                        token = RandomUtil.randomString(19);
+                        user.setToken(token);
+                        db.setUserToken(user.getId(), token);
+                    }
 
                     processOK(retJSON, "", response);
                     session.setAttribute("user", user);
@@ -995,15 +1125,16 @@ public class Servlet extends HttpServlet
     protected void processLogoutGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
         HttpSession s = request.getSession();
-        User user = (User)s.getAttribute("user");
+        User user = (User) s.getAttribute("user");
         String soft = request.getParameter("soft");
-        if(user!=null && !StrUtil.equals(soft, "true"))
+        if (user != null && !StrUtil.equals(soft, "true"))
         {
-            try(DBAccess db = DBAccess.getDefaultInstance())
+            try (DBAccess db = DBAccess.getDefaultInstance())
             {
                 db.clearUserToken(user.getId());
             } catch (Exception e)
             {
+                logError(e);
                 e.printStackTrace();
             }
         }
@@ -1050,11 +1181,14 @@ public class Servlet extends HttpServlet
             } catch (IOException ioe)
             {
                 //failure connect to ICY
+                logError(ioe);
                 processStatus(jsonr, "", "IOException", 500, response);
+
                 ioe.printStackTrace();
             } catch (SQLException sqle)
             {
                 //db fail
+                logError(sqle);
                 processStatus(jsonr, "", "SQLException", 500, response);
                 sqle.printStackTrace();
             }
@@ -1148,6 +1282,7 @@ public class Servlet extends HttpServlet
                 } catch (OSSException osse)
                 {
                     processStatus(jsonr, osse, "OSSException", 400, response);
+                    logError(osse);
                 }
                 jsonr.write(pw);
                 return;
@@ -1175,6 +1310,7 @@ public class Servlet extends HttpServlet
             } catch (Exception e)
             {
                 processSQLException(jsonr, e, response);
+                logError(e);
             }
             jsonr.write(pw);
         }
@@ -1182,39 +1318,46 @@ public class Servlet extends HttpServlet
 
     protected void processSearchCardsPOST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
+
+        //Initalize session variables.
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");
         JSONObject jsonr = JSONUtil.createObj();
         JSONObject requestJSON = JSONUtil.parseObj(ServletUtil.getBody(request));
         try (PrintWriter pw = response.getWriter())
         {
+            //check user login status
             if (user == null)
             {
                 processStatus(jsonr, "You must login first to use this application", "NoLogin", 400, response);
                 jsonr.write(pw);
                 return;
             }
-
+            //check payload data before read
             if (requestJSON.isEmpty())
             {
                 processStatus(jsonr, "You cannot post EMPTY data", "NoData", 400, response);
                 jsonr.write(pw);
                 return;
             }
-            //get the user id from the request.
+            //get the user creds from the request.
             String userId = requestJSON.getStr("userId");
             Integer mode = requestJSON.getInt("mode");
             String userIp = ServletUtil.getClientIP(request);
             String token = requestJSON.getStr("token");
             String captcha = requestJSON.getStr("captcha");
+
+            //check either type of captcha: google captcha or image captcha
             if (StrUtil.isEmpty(token))
             {
+                //check for image captcha
                 if (StrUtil.isEmpty(captcha))
                 {
                     processStatus(jsonr, "Need captcha!", "CaptchaFail", 400, response);
                     jsonr.write(pw);
                     return;
                 }
+
                 //token is empty but captcha is not empty
                 AbstractCaptcha cp = (AbstractCaptcha) session.getAttribute("captcha");
                 String code = cp.getCode();
@@ -1226,6 +1369,7 @@ public class Servlet extends HttpServlet
                 }
             } else
             {
+                //check for google captcha, post a request to google server to verify the result
                 JSONObject captchaResult = ICYWebCommunicator.getCaptchaResult(token, userIp);
                 if (!captchaResult.getBool("success"))
                 {
@@ -1233,6 +1377,7 @@ public class Servlet extends HttpServlet
                     jsonr.write(pw);
                     return;
                 }
+                //check score of captcha
                 Double score = captchaResult.getDouble("score");
                 if (score <= 0.6)
                 {
@@ -1243,6 +1388,7 @@ public class Servlet extends HttpServlet
                 }
             }
 
+            //assign default crawling mode: 我发给TA的片
             if (mode == null)
             {
                 mode = 1;
@@ -1294,8 +1440,9 @@ public class Servlet extends HttpServlet
         processStatus(jsonr, data, "NumberFormatException", 400, response);
     }
 
-    public static void processSQLException(JSONObject jsonr, Object data, HttpServletResponse response) throws ServletException, IOException
+    public static void processSQLException(JSONObject jsonr, Throwable data, HttpServletResponse response) throws ServletException, IOException
     {
+        logError(data);
         processStatus(jsonr, data, "SQLException", 500, response);
     }
 
