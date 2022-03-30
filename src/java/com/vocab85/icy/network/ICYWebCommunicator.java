@@ -25,6 +25,8 @@ import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 //import org.jboss.weld.context.http.Http;
 import org.jsoup.Jsoup;
@@ -445,6 +447,42 @@ public class ICYWebCommunicator
         
     }
 
+    
+    public static ArrayList<ICYPostcard> getUserPostcardsNotReceived(int icyId) throws SQLException
+    {
+        ArrayList<Integer> pcIdList;
+        ArrayList<ICYPostcard> userCards = new ArrayList<>();
+        ArrayList<Integer> pcIdTobeUpdated = new ArrayList<>();
+        try(DBAccess dba = DBAccess.getDefaultInstance())
+        {
+           pcIdList = dba.getCardSeqReceivedNotRegisteredByICYUserId(icyId);
+            for (int i = 0; i < pcIdList.size(); i++)
+            {
+                Integer postcardId = pcIdList.get(i);
+                ICYPostcard postcard = ICYPostcard.getPostcardFromId(postcardId);
+                if(ICYPostcard.PCSTATUS_RECEIVED == postcard.getStatus())
+                {
+                    pcIdTobeUpdated.add(postcardId);
+                }else
+                {
+                    userCards.add(postcard);
+                }
+            }
+            Thread t = new Thread(()->{
+               try
+               {
+                   dba.updateCardsStatusByCardIdAsReceived(pcIdTobeUpdated);
+               } catch (SQLException ex)
+               {
+                   Logger.getLogger(ICYWebCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+                   AliOSS.logError(ex);
+               }
+            });
+            t.start();
+        }
+        return userCards;
+    }
+    
     public static void main(String[] args) throws IOException, InterruptedException
     {
         System.out.println(Arrays.toString(getCardInfo("1142322")));

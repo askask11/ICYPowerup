@@ -11,6 +11,7 @@ import cn.hutool.captcha.ShearCaptcha;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.net.multipart.MultipartFormData;
 import cn.hutool.core.net.multipart.UploadFile;
+import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
@@ -22,6 +23,8 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.aliyun.oss.OSSException;
 import com.aliyun.oss.model.OSSObject;
+import com.vocab85.icy.model.ICYPostcard;
+import com.vocab85.icy.model.LongTask;
 import com.vocab85.icy.model.MailUtilBetter;
 import com.vocab85.icy.model.User;
 import com.vocab85.icy.model.UserFavouriteItem;
@@ -50,6 +53,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import static com.vocab85.icy.network.AliOSS.logError;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -61,12 +66,13 @@ import static com.vocab85.icy.network.AliOSS.logError;
     "/SavePluginSettings", "/UpFile", "/GetTimeout", "/DeleteFile", "/DeregisterICY",
     "/SearchCards", "/Captcha", "/SearchId", "/RegisterExpiredCards", "/Hacks", "/Hacks2",
     "/Register", "/Register2", "/ChangePassword", "/ChangeUsername", "/ChangeEmail", "/PasswordRecovery", "/PasswordRecovery2", "/PasswordRecovery3",
-    "/GetFavourite", "/UploadICYPhoto", "/AddFavouriteUser"
+    "/GetFavourite", "/UploadICYPhoto", "/AddFavouriteUser","/GetUnregisteredCards","/TestIdle","/TestIdle2"
 })
 public class Servlet extends HttpServlet
 {
 
     private static Driver registeredDriver;
+    private static final List<LongTask> tasks = new ArrayList<>();
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -150,6 +156,15 @@ public class Servlet extends HttpServlet
                 break;
             case "/AddFavouriteUser":
                 processAddFavouriteUserGET(request, response);
+                break;
+            case "/GetUnregisteredCards":
+                processGetUnregisteredCardsGET(request, response);
+                break;
+            case "/TestIdle":
+                processTestIdleGET(request, response);
+                break;
+            case "/TestIdle2":
+                processTestIdle2GET(request,response);
                 break;
             default:
                 processRequest(request, response);
@@ -1404,6 +1419,72 @@ public class Servlet extends HttpServlet
 
     }
 
+    public void processGetUnregisteredCardsGET(HttpServletRequest request, HttpServletResponse response)throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        //String icyid = user.getIcyid();
+        JSONObject jsonr = JSONUtil.createObj();
+        try (PrintWriter pw = response.getWriter())
+        {
+            String icyIdStr = user.getIcyid();
+            if(StrUtil.isEmpty(icyIdStr))
+            {
+                processNoParam(jsonr, response);
+                jsonr.write(pw);
+                return;
+            }
+            //Crawl id
+            try
+            {
+                List<ICYPostcard> cards = ICYWebCommunicator.getUserPostcardsNotReceived(Integer.parseInt(icyIdStr));
+                //jsonr.set("data", cards);
+                processOK(jsonr, cards, response);
+            } catch (Exception e)
+            {
+                processSQLException(jsonr, e, response);
+                logError(e);
+            }
+            jsonr.write(pw);
+        }
+    }
+    //Future<?> f;
+    
+    private boolean ifIdEx(String id)
+    {
+        return tasks.stream().anyMatch(task -> (task.getTaskId().equals(id)));
+    }
+    public void processTestIdleGET(HttpServletRequest request, HttpServletResponse response)throws ServletException, IOException
+    {
+        PrintWriter pw= response.getWriter();
+                
+       String id = request.getParameter("id");
+        //String haha = this.toString();
+        
+        
+        if(!ifIdEx(id))
+        {
+            LongTask task = new LongTask(tasks,id);
+            ThreadUtil.execAsync(task);
+            pw.println("Holy Cow!");
+        }else
+        {
+            pw.print("ID Exists!");
+        }
+        
+        
+        pw.flush();
+        pw.close();
+    }
+    public void processTestIdle2GET(HttpServletRequest request, HttpServletResponse response)throws ServletException, IOException
+    {
+        try(PrintWriter pw = response.getWriter())
+        {
+            pw.println(this.toString());
+            pw.println(tasks.toString());
+            //pw.println(Arrays.toString(ThreadUtil.getThreads()));
+        }
+    }
     /*
      protected void process<>GET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {

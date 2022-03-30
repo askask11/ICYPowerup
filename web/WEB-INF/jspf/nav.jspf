@@ -20,18 +20,21 @@
             </c:if>
             <c:if test="${user!=null}">
                 <li>
-
                     <a href="ManagePanel" class="nav-link ${path.equals("/ManagePanel.jsp")?"active":""}">
                         控制面板
                     </a>
 
                 </li>
-                
-                
-                
+
+                <li>
+                    <a href="UnregisteredCards.jsp" class="nav-link">
+                        ICY收信箱
+                    </a>
+                </li>
+
             </c:if>
             <li>
-                <a href="https://www.wjx.cn/vj/raRZHBK.aspx" class="nav-link" target="_blank">
+                <a href="https://www.icardyou.icu/message/messageDetail?targetUserId=32364" class="nav-link" target="_blank">
                     反馈与建议
                 </a>
             </li>
@@ -55,11 +58,11 @@
 
 </nav>
 <script>
-function logoutMain()
-{
-    window.localStorage.removeItem("token");
-    window.location.href="logout";
-}
+    function logoutMain()
+    {
+        window.localStorage.removeItem("token");
+        window.location.href = "logout";
+    }
 </script>          
 
 <%--Put user setting panel here.--%>

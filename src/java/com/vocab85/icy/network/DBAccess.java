@@ -5,6 +5,7 @@
  */
 package com.vocab85.icy.network;
 
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
@@ -29,9 +30,9 @@ import java.util.Properties;
  */
 public class DBAccess implements AutoCloseable
 {
-
+    
     private Connection dbConn;
-
+    
     public int updateToken(int id, String token) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("UPDATE users SET token=? WHERE users.id=?");
@@ -39,7 +40,7 @@ public class DBAccess implements AutoCloseable
         ps.setInt(2, id);
         return ps.executeUpdate();
     }
-
+    
     public int updateUsername(int id, String username) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("UPDATE users SET username=? WHERE users.id=?");
@@ -47,7 +48,7 @@ public class DBAccess implements AutoCloseable
         ps.setInt(2, id);
         return ps.executeUpdate();
     }
-
+    
     public int updatePassword(int id, String password) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("UPDATE users SET password=? WHERE users.id=?");
@@ -55,7 +56,7 @@ public class DBAccess implements AutoCloseable
         ps.setInt(2, id);
         return ps.executeUpdate();
     }
-
+    
     public int updatePasswordByEmail(String email, String password) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("UPDATE users SET password=? WHERE email=?");
@@ -63,7 +64,7 @@ public class DBAccess implements AutoCloseable
         ps.setString(2, email);
         return ps.executeUpdate();
     }
-
+    
     public int updateEmail(int id, String email) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("UPDATE users SET email=? WHERE users.id=?");
@@ -71,7 +72,7 @@ public class DBAccess implements AutoCloseable
         ps.setInt(2, id);
         return ps.executeUpdate();
     }
-
+    
     public boolean isUserExists(String email) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("SELECT COUNT(*) FROM users WHERE email=?");
@@ -80,7 +81,7 @@ public class DBAccess implements AutoCloseable
         rs.next();
         return rs.getInt(1) > 0;
     }
-
+    
     public int addUser(int id, String username, String password, String email) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("INSERT INTO users VALUES (?,?,?,?,?,?,?)");
@@ -93,7 +94,7 @@ public class DBAccess implements AutoCloseable
         ps.setBoolean(7, false);
         return ps.executeUpdate();
     }
-
+    
     private User getUserFromRS(ResultSet rs) throws SQLException
     {
         User user = new User();
@@ -104,10 +105,9 @@ public class DBAccess implements AutoCloseable
         user.setEmail(rs.getString("email"));
         user.setHacks(rs.getBoolean("hacks"));
         
-
         return user;
     }
-
+    
     public User getUserByEmail(String email, String password) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("SELECT * FROM users WHERE email=? AND password=?");
@@ -120,7 +120,7 @@ public class DBAccess implements AutoCloseable
         }
         return null;
     }
-
+    
     public int setUserToken(int id, String token) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("UPDATE users SET token=? WHERE users.id=?");
@@ -128,7 +128,7 @@ public class DBAccess implements AutoCloseable
         ps.setInt(2, id);
         return ps.executeUpdate();
     }
-
+    
     public int clearUserToken(int id) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("UPDATE users SET token=? WHERE users.id=?");
@@ -136,7 +136,7 @@ public class DBAccess implements AutoCloseable
         ps.setInt(2, id);
         return ps.executeUpdate();
     }
-
+    
     public User getUserByToken(String token) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("SELECT * FROM users WHERE token=?");
@@ -148,7 +148,7 @@ public class DBAccess implements AutoCloseable
         }
         return null;
     }
-
+    
     public User getUser(String username, String password) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("SELECT * FROM users WHERE username=? AND password=?");
@@ -161,13 +161,34 @@ public class DBAccess implements AutoCloseable
         }
         return null;
     }
+    
+    public ArrayList<User> getUsers() throws SQLException
+    {
+        Statement s = dbConn.createStatement();
+        ArrayList<User> userList = new ArrayList<>();
+        ResultSet rs = s.executeQuery("SELECT * FROM users");
+        while (rs.next())
+        {
+            userList.add(getUserFromRS(rs));
+        }
+        return userList;
+    }
+    
+    public void randomDrawUsers(int amount) throws SQLException
+    {
+        ArrayList<User> userList = getUsers();
+        for (int i = 0; i < amount; i++)
+        {
+            System.out.println("LUCKY USER: #" + userList.get(RandomUtil.randomInt(0, userList.size() - 1)).getIcyid());
+        }
+    }
 
     public String getCardSeqByCardId(String cardId) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("SELECT cardSeq FROM icyCards WHERE cardId=?");
         ps.setString(1, cardId);
         ResultSet rs = ps.executeQuery();
-        if(rs.next())
+        if (rs.next())
         {
             return rs.getString(1);
         }
@@ -179,7 +200,7 @@ public class DBAccess implements AutoCloseable
         Statement s = dbConn.createStatement();
         return s.executeUpdate("UPDATE users SET icyid=NULL WHERE id=" + userid);
     }
-
+    
     public int updateUserId(int userPowerUpId, String userIcyId) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("UPDATE users SET icyid=? WHERE users.id=?");
@@ -187,14 +208,13 @@ public class DBAccess implements AutoCloseable
         ps.setInt(2, userPowerUpId);
         return ps.executeUpdate();
     }
-
     
     public User getUserByUserId(int powerUpId) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("SELECT * FROM users WHERE users.id=?");
         ps.setInt(1, powerUpId);
         ResultSet rs = ps.executeQuery();
-        if(rs.next())
+        if (rs.next())
         {
             User user = new User();
             user.setId(rs.getInt(1));
@@ -219,7 +239,7 @@ public class DBAccess implements AutoCloseable
         }
         return null;
     }
-
+    
     public boolean isUserHacks(String un, String pass) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("SELECT hacks FROM users WHERE username=? AND password=?");
@@ -229,11 +249,11 @@ public class DBAccess implements AutoCloseable
         if (rs.next())
         {
             return rs.getBoolean(1);
-
+            
         }
         return false;
     }
-
+    
     public int insertHackR(String username, String pcid, String friend, String carddata) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("INSERT INTO hackcard VALUES(?,?,?,?)");
@@ -242,9 +262,9 @@ public class DBAccess implements AutoCloseable
         ps.setString(3, friend);
         ps.setString(4, carddata);
         return ps.executeUpdate();
-
+        
     }
-
+    
     public int[] batchInsertCards(ArrayList<ICYPostcard> cardList) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("INSERT INTO icyCards VALUES(?,?,?,?)");
@@ -258,8 +278,6 @@ public class DBAccess implements AutoCloseable
         }
         return ps.executeBatch();
     }
-
-    
     
     public int getLatestCrawledCardSeqId() throws SQLException
     {
@@ -269,8 +287,6 @@ public class DBAccess implements AutoCloseable
         return rs.getInt(1);
     }
     
-    
-    
     public JSONArray getUserFaviouriteById(int powerupid) throws SQLException
     {
         JSONObject row = null;
@@ -278,7 +294,7 @@ public class DBAccess implements AutoCloseable
         PreparedStatement ps = dbConn.prepareStatement("SELECT * FROM userFavourite WHERE powerupid=? ORDER BY icyUserpingyin ASC");
         ps.setInt(1, powerupid);
         ResultSet rs = ps.executeQuery();
-        while(rs.next())
+        while (rs.next())
         {
             row = JSONUtil.createObj();
             row.set("powerupid", powerupid);
@@ -289,21 +305,21 @@ public class DBAccess implements AutoCloseable
             results.add(row);
         }
         
-       return results;
+        return results;
     }
-
+    
     public int insertIntoUserFavourite(UserFavouriteItem item) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("INSERT INTO userFavourite VALUES(?,?,?,?,?)");
         ps.setInt(1, item.getPowerupId());
         ps.setInt(2, item.getIcyId());
         ps.setString(3, item.getIcyUsername());
-        ps.setString(4,  StrUtil.sub(item.getIcyUserPingyin(), 0, 3));
+        ps.setString(4, StrUtil.sub(item.getIcyUserPingyin(), 0, 3));
         ps.setString(5, item.getIcyAvatarUrl());
         return ps.executeUpdate();
     }
     
-    public boolean isUserFavouriteExists(int powerupId, int icyId)throws SQLException
+    public boolean isUserFavouriteExists(int powerupId, int icyId) throws SQLException
     {
         PreparedStatement ps = dbConn.prepareStatement("SELECT COUNT(*) FROM userFavourite WHERE powerupId=? AND icyid=?");
         ResultSet rs;
@@ -311,15 +327,42 @@ public class DBAccess implements AutoCloseable
         ps.setInt(2, icyId);
         rs = ps.executeQuery();
         rs.next();
-        return rs.getInt(1)>0;
+        return rs.getInt(1) > 0;
+    }
+    
+    public ArrayList<Integer> getCardSeqReceivedNotRegisteredByICYUserId(int receiverId) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("SELECT cardSeq FROM icyCards WHERE receiverId=? AND received=?");
+        ResultSet rs = null;
+        ArrayList<Integer> results = new ArrayList<>();
+        ps.setInt(1, receiverId);
+        ps.setBoolean(2, false);
+        rs = ps.executeQuery();
+        while (rs.next())
+        {
+            results.add(rs.getInt(1));
+        }
+        return results;
+    }
+    
+    public int[] updateCardsStatusByCardIdAsReceived(java.util.List<Integer> idList) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("UPDATE icyCards SET received=? WHERE cardSeq=?");
+        for (Integer id : idList)
+        {
+            ps.setBoolean(1, true);
+            ps.setInt(2, id);
+            ps.addBatch();
+        }
+        return ps.executeBatch();
     }
     
     public DBAccess()
     {
         dbConn = null;
-
+        
     }
-
+    
     public void connect(String url, String dbUsername, String dbPassword, boolean useSSL) throws SQLException
     {
         //String connectionURL = "jdbc:mysql://" + host + "/" + dbName;
@@ -333,7 +376,7 @@ public class DBAccess implements AutoCloseable
         //"-u root -p mysql1 -useSSL false"
         this.dbConn = DriverManager.getConnection(url, properties);
     }
-
+    
     public static DBAccess getDefaultInstance() throws SQLException
     {
         DBAccess d = new DBAccess();
@@ -341,16 +384,20 @@ public class DBAccess implements AutoCloseable
         d.connect(s.get("url"), s.get("user"), s.get("pass"), true);
         return d;
     }
-
+    
     @Override
     public void close() throws SQLException
     {
         this.dbConn.close();
     }
-
+    
     public static void main(String[] args) throws SQLException
     {
-        DBAccess d = getDefaultInstance();
-        System.out.println(d.getUser("jgao", "e"));
+        try (DBAccess dba = DBAccess.getDefaultInstance())
+        {
+            //随机抽4位用户
+            //dba.randomDrawUsers(4);
+            System.out.println(dba.getCardSeqReceivedNotRegisteredByICYUserId(32364));
+        }
     }
 }
