@@ -5,7 +5,6 @@
  */
 package com.vocab85.icy.model;
 
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -21,11 +20,11 @@ public class LongTask implements Runnable
     public LongTask(List<LongTask> motherList)
     {
         this.motherList = motherList;
-        
+        taskId=null;
     }
     public LongTask(List<LongTask> m, String id)
     {
-        motherList = m;
+        this(m);
         taskId = id;
         
     }

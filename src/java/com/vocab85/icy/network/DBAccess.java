@@ -357,6 +357,96 @@ public class DBAccess implements AutoCloseable
         return ps.executeBatch();
     }
     
+    
+    public int insertIntoUserCrawlRequestRecord(int userId, int cardsCrawled, String datetime, boolean isCancelled) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("INSERT INTO inboxCrawlRecord VALUES(?,?,?,?)");
+        ps.setInt(1, userId);
+        ps.setInt(2, cardsCrawled);
+        ps.setString(3, datetime);
+        ps.setBoolean(4, isCancelled);
+        return ps.executeUpdate();
+    }
+    
+    public String getPostcardIdBySenderReceiverSq(int sequence, int sender, int receiver) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("SELECT cardId FROM icyCards WHERE cardSeq=? AND senderId=? AND receiverId=?");
+        ps.setInt(1, sequence);
+        ps.setInt(2, sender);
+        ps.setInt(3, receiver);
+        ResultSet rs = ps.executeQuery();
+        if(rs.next())
+        {
+            return rs.getString(1);
+        }
+        return null;
+    }
+    
+    public int insertUserLoginRecord(int userId, String datetime) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("INSERT INTO userLoginRecord VALUES(?,?)");
+        ps.setInt(1, userId);
+        ps.setString(2, datetime);
+        return ps.executeUpdate();
+    }
+    
+    
+    public int[] insertRedirectLink(String[] links) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("INSERT INTO `redirect` VALUES (?,?)");
+        for (String link : links)
+        {
+            ps.setString(1, link);
+            ps.setNull(2, java.sql.Types.CHAR);
+            ps.addBatch();
+        }
+        return ps.executeBatch();
+    }
+    
+    public String getRedirectLink(String key)throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("SELECT destURL FROM `redirect` WHERE `linkId`=?");
+        ps.setString(1, key);
+        ResultSet rs = ps.executeQuery();
+        if(rs.next())
+        {
+            String res = rs.getString(1);
+            if(res == null)
+            {
+                return "";
+            }
+            return res;
+        }
+        return null;
+    }
+    
+    public int updateRedirectRecord(String key, String link) throws SQLException
+    {
+        PreparedStatement ps = dbConn.prepareStatement("UPDATE `redirect` SET `destURL`=? WHERE `linkId`=?");
+        ps.setString(1, link);
+        ps.setString(2, key);
+        return ps.executeUpdate();
+    }
+    
+    
+    public int insertIntoReportRecord(int powerupId, int icyId, String time) throws SQLException
+    {
+       Statement s = dbConn.createStatement();
+       ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM reportRecord WHERE powerupId="+powerupId);
+       rs.next();
+       if(rs.getInt(1)>0)
+       {
+           //user reported before
+           return s.executeUpdate("UPDATE reportRecord SET reportCount = reportCount + 1");
+       }
+       PreparedStatement ps = dbConn.prepareStatement("INSERT INTO reportRecord VALUES(?,?,?,?)");
+       ps.setInt(1, powerupId);
+       ps.setInt(2, icyId);
+       ps.setString(3, time);
+       ps.setInt(4, 1);
+       return ps.executeUpdate();
+    }
+    
     public DBAccess()
     {
         dbConn = null;
@@ -384,6 +474,10 @@ public class DBAccess implements AutoCloseable
         d.connect(s.get("url"), s.get("user"), s.get("pass"), true);
         return d;
     }
+    
+    
+    
+    
     
     @Override
     public void close() throws SQLException

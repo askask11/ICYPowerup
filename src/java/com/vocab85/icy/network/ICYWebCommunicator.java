@@ -74,19 +74,19 @@ public class ICYWebCommunicator
         ICYUser u = new ICYUser();
         u.setId(userId);
         //crawl user page
-        
+
         String url = "https://www.icardyou.icu/userInfo/homePage?userId=" + userId;
         String content = HttpUtil.downloadString(url, "UTF-8");
         Document document = Jsoup.parse(content);
-        
+
         //get user's Username
         Element h3 = document.getElementsByTag("h3").get(0);
         u.setUsername(h3.html().trim());
-        
+
         //get user's avatar address
         Element avatarImage = document.getElementsByTag("img").get(2);
         u.setAvatarUrl(avatarImage.attr("src"));
-        
+
         //get user's power up 
         Element scriptTag = document.getElementById("powerup-script");
         //no such element, the user didn't input the element there.
@@ -94,12 +94,11 @@ public class ICYWebCommunicator
         {
             u.setPowerupId(scriptTag.attr("data-powerup-id"));
         }
-        
+
         return u;
-        
+
     }
-    
-    
+
     private static int getLastPageFromURI(String[] urifrgs)
 
     {
@@ -205,6 +204,42 @@ public class ICYWebCommunicator
         return pageNum;
     }
 
+    public static String crawlCardType(String cardId, String icyId)
+    {
+        HttpRequest req = HttpUtil.createGet("https://www.icardyou.icu/sendpostcard/myPostCard/1");
+        String cookie = URLEncoder.createDefault().encode(getAuthCookie(icyId, "--"), Charset.forName("UTF-8"));
+        req.cookie(cookie);
+        HttpResponse resp = req.execute();
+        Document doc = Jsoup.parse(resp.body());
+        int maxPage = 1;
+        //the "last page" button
+        Element ele= doc.selectFirst("body > div.usercenter-container > div.main > div > div > div > nav > ul > li:nth-child(12) > a");
+        if(ele!=null)
+        {
+            String hrefA = ele.attr("href");
+            String[] frags = hrefA.split("=");
+            maxPage = Integer.parseInt(frags[frags.length-1]);
+        }
+        
+        for (int i = 1; i <= maxPage; i++)
+        {
+            req = HttpUtil.createGet("https://www.icardyou.icu/sendpostcard/myPostCard/1?status=&cardType=&nowPage=" + i);
+            req.cookie(cookie);
+            resp = req.execute();
+            doc = Jsoup.parse(resp.body());
+            Elements eles = doc.getElementsMatchingOwnText(cardId);
+            if(!eles.isEmpty())
+            {
+                ele = eles.first();
+                return ele.parent().parent().child(0).html();
+                 
+            }
+        }
+        return null;
+    }
+    
+    
+
     private static void crawlAllPostcardsWithUser(String authCookie, String targetId, String mode, JSONArray jsonrarray)
     {
         int pageNum = getUserMaxPostcardPageNum(authCookie, mode);
@@ -223,8 +258,7 @@ public class ICYWebCommunicator
     public static JSONObject getPostcardPicWithUser(String icyid, String targetId, int mode)
     {
         // From given id, visit the user's home page to get the user's username, to generate the URL.
-        
-        
+
         String username = "你";//getUsernameByIcyId(icyid);
         ICYUser targetUser = getICYUserProfile(targetId);
         String receiver = targetUser.getUsername();
@@ -305,20 +339,24 @@ public class ICYWebCommunicator
 
     public static String[] getCardInfo(String pcid)
     {
-        try{
-        String c = HttpUtil.downloadString("https://www.icardyou.icu/sendpostcard/postcardDetail/" + pcid, "UTF-8");
-        Document doc = Jsoup.parse(c);
-        String[] receiveInfo = doc.getElementsByClass("panel-title").get(0).text().split(" ");//[明信片, 383, 已收到]
-        String[] otherInfo;
-        Element senderInfoTableElement = doc.getElementsByClass("table").first();
-        Element senderDateElement = senderInfoTableElement.getElementsByTag("tr").get(2).getElementsByTag("td").get(1);//third row is send date
-        Element senderElement = senderInfoTableElement.getElementsByTag("a").first();
-        String sendDate = senderDateElement.text().trim();
-        String sender = senderElement.text().trim();
-        otherInfo = new String[]{sender,sendDate};
-        
-        return ArrayUtil.addAll(receiveInfo, otherInfo);
-        }catch(Exception e)
+        try
+        {
+            String c = HttpUtil.downloadString("https://www.icardyou.icu/sendpostcard/postcardDetail/" + pcid, "UTF-8");
+            Document doc = Jsoup.parse(c);
+            String[] receiveInfo = doc.getElementsByClass("panel-title").get(0).text().split(" ");//[明信片, 383, 已收到]
+            String[] otherInfo;
+            Element senderInfoTableElement = doc.getElementsByClass("table").first();
+            Element senderDateElement = senderInfoTableElement.getElementsByTag("tr").get(2).getElementsByTag("td").get(1);//third row is send date
+            Element senderElement = senderInfoTableElement.getElementsByTag("a").first();
+            String sendDate = senderDateElement.text().trim();
+            String sender = senderElement.text().trim();
+            otherInfo = new String[]
+            {
+                sender, sendDate
+            };
+
+            return ArrayUtil.addAll(receiveInfo, otherInfo);
+        } catch (Exception e)
         {
             return null;
         }
@@ -356,7 +394,7 @@ public class ICYWebCommunicator
      */
     public static ArrayList<ICYPostcard> crawlICYCards(final int beginId, final int endId, final ProgressListener listener) throws SQLException, InterruptedException
     {
-        ArrayList<ICYPostcard> cardList = new ArrayList<>(endId-beginId);
+        ArrayList<ICYPostcard> cardList = new ArrayList<>(endId - beginId);
         //System.out.println("arrlist size" + (endId-beginId));
         for (int i = 0, maxi = endId - beginId; i <= maxi; i++)
         {
@@ -366,10 +404,10 @@ public class ICYWebCommunicator
                 //System.out.println("Add card #"+(beginId+i));
                 //System.out.println();
                 cardList.add(ICYPostcard.getPostcardFromId(beginId + i));
-                listener.onSuccess(beginId+i);
+                listener.onSuccess(beginId + i);
             } catch (Exception ex)
             {
-                listener.onFailure(beginId+i, ex);
+                listener.onFailure(beginId + i, ex);
             }
         }
         return cardList;
@@ -381,17 +419,17 @@ public class ICYWebCommunicator
         System.out.println("Getting the latest crawled card.");
         int lat = dbobj.getLatestCrawledCardSeqId();//get the latest index
         //System.out.println("Latest crawled card: " + lat);
-        return crawlICYCards(lat + 1, lat + 1 + increment,listener);
+        return crawlICYCards(lat + 1, lat + 1 + increment, listener);
     }
-    
+
     public static ArrayList<ICYPostcard> crawlICYCardsLatId(final int increment, final int lat, final ProgressListener listener) throws SQLException, InterruptedException
     {
-       // System.out.println("Getting the latest crawled card.");
+        // System.out.println("Getting the latest crawled card.");
         //int lat = dbobj.getLatestCrawledCardSeqId();//get the latest index
         //System.out.println("Latest crawled card: " + lat);
-        return crawlICYCards(lat + 1, lat + 1 + increment,listener);
+        return crawlICYCards(lat + 1, lat + 1 + increment, listener);
     }
-    
+
     public static String searchFriendByMainpageKeyword(String keyword)
     {
         //Request the send postcard page.
@@ -402,7 +440,7 @@ public class ICYWebCommunicator
         Elements trs = document.getElementsByTag("tr");//get all table rows of the "send postcard page"
         for (int j = 1; j < trs.size(); j++)//skip the first row, it is the table header.
         {
-            
+
             //get ONE row from the table
             Element tr = trs.get(j);
             //get the 4th column of the row, 
@@ -412,77 +450,40 @@ public class ICYWebCommunicator
             String href = usernametd.getElementsByTag("a").attr("href");
             System.out.println(href);
             req = HttpRequest.get(href);
-            
+
             resp = req.execute();
-            
+
             document = Jsoup.parse(resp.body());
-            
+
             Elements wells = document.getElementsByClass("well");
-            
-            if(wells.isEmpty())
+
+            if (wells.isEmpty())
             {
                 continue;
             }
             Element well = wells.get(0);
             System.out.println(well.text());
-            if(well.text().contains(keyword))
+            if (well.text().contains(keyword))
             {
-                
+
                 System.out.println(href);
                 return href;
             }
-            
+
         }
         return "404";
     }
-    
-    
+
     public static void uploadImageICY(byte[] imagebyte, String fileName, String postcardId, String userId, String uploader)
     {
         HttpRequest request = HttpUtil.createPost("https://www.icardyou.icu/sendpostcard/uploadImg");
         request.form("file", imagebyte, fileName);
         request.form("cardId", postcardId);
-        request.cookie("user-info="+userId+";"+uploader+";2000-1-1;2;2;0");
+        request.cookie("user-info=" + userId + ";" + uploader + ";2000-1-1;2;2;0");
         HttpResponse resp = request.execute();
-        
+
     }
 
-    
-    public static ArrayList<ICYPostcard> getUserPostcardsNotReceived(int icyId) throws SQLException
-    {
-        ArrayList<Integer> pcIdList;
-        ArrayList<ICYPostcard> userCards = new ArrayList<>();
-        ArrayList<Integer> pcIdTobeUpdated = new ArrayList<>();
-        try(DBAccess dba = DBAccess.getDefaultInstance())
-        {
-           pcIdList = dba.getCardSeqReceivedNotRegisteredByICYUserId(icyId);
-            for (int i = 0; i < pcIdList.size(); i++)
-            {
-                Integer postcardId = pcIdList.get(i);
-                ICYPostcard postcard = ICYPostcard.getPostcardFromId(postcardId);
-                if(ICYPostcard.PCSTATUS_RECEIVED == postcard.getStatus())
-                {
-                    pcIdTobeUpdated.add(postcardId);
-                }else
-                {
-                    userCards.add(postcard);
-                }
-            }
-            Thread t = new Thread(()->{
-               try
-               {
-                   dba.updateCardsStatusByCardIdAsReceived(pcIdTobeUpdated);
-               } catch (SQLException ex)
-               {
-                   Logger.getLogger(ICYWebCommunicator.class.getName()).log(Level.SEVERE, null, ex);
-                   AliOSS.logError(ex);
-               }
-            });
-            t.start();
-        }
-        return userCards;
-    }
-    
     public static void main(String[] args) throws IOException, InterruptedException
     {
         System.out.println(Arrays.toString(getCardInfo("1142322")));

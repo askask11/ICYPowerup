@@ -76,4 +76,10 @@ public class MailUtilBetter extends MailUtil
                     + "communication and any attachments.");
     }
     
+    public static void main(String[] args)
+    {
+        MailUtil.sendText("xeduoover18@gmail.com", "nihao", "wo fei chng hao");
+        System.out.println("Yay!");
+    }
+    
 }

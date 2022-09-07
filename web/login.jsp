@@ -366,7 +366,7 @@
         <footer class="text-center footer translucent">
             <small style="bottom: 0;">
                 声明：此网站是Johnson为了方便大家管理活动自研的网站，不收集关于ICY账户的任何其它信息。ICY官方和本网站并无合作关系。背景图片来源网络，侵删。<br><!-- comment -->
-                Johnson 2021 <a href="http://beian.miit.gov.cn">粤ICP备2020113241号</a>
+                Johnson 2021 <a href="http://beian.miit.gov.cn">粤ICP备2022076116号</a>
             </small>
 
         </footer>

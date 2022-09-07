@@ -4,3 +4,18 @@ You should add your new functions to FEP.
 
 
 index.js, AutoRegister.js needs to be updated from the OSS either.
+
+Priority
+在每个人主页增加 "隐藏" 特效的功能
+
+Normal
+1. 主页登记增加黑白名单
+- 前端编辑页面
+- 前端保存脚本增加黑白名单 loadAutoRegisterSetting 和saveSetting()里面增加
+
+- 后端检查黑白名单
+
+
+2. 增加查看明信片类别
+3. 优化半边显示问题
+4. 增加上传文件审查机制

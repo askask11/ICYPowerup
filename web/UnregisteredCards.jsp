@@ -24,15 +24,30 @@
         <div class="container translucent rounded">
             <br><br>
             <h3>
-                我的收件箱
+                待登记明信片
             </h3>
             <br>
-            <h4>你好, ${user.getUsername()}， 欢迎使用！</h4>
+            <h4>你好, ${user.getUsername()}, 欢迎使用!</h4>
             <br>
-            报告生成时间: 2022-03-29 20:00,
-            <br>以下是在途中和未发送的明信片：
-            <br>
+            <button class="btn btn-outline-primary" onclick="submitTask();" id="genNewReport">
+                生成ICY待登记明信片报告
+            </button>
 
+
+            <br>
+            <br>
+            <div class="card " style='background-color: rgba(255,255,255,0.1); display: none;' id='reportProgressCard'>
+                <div class='card-body'>
+                    您有一份正在生成的报告，
+                    报告生成进度：<span id="reportPercentage"></span>
+                    <div class="progress">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"  style="width: 2%"></div>
+                    </div><!-- comment -->
+                    
+                    <a href="javascript:cancelConfirm()">取消</a>
+                </div>
+            </div>
+            <br>以下是暂未被您登记的明信片<span id="totalCards"></span>上次缓存时间:<span id="time">暂无</span>
             <br>
             <table class="table table-striped">
 
@@ -56,19 +71,19 @@
                 <tbody id="tableBody">
                     <tr>
                         <td>
-                            Johnson Gao
+                            Johnson
                         </td>
                         <td>
                             2003-04-08 21:30
                         </td>
                         <td>
-                            CNJJ2021
+                            FNNA0170
                         </td>
                         <td>
-                            在途
+                            已过期
                         </td>
                         <!--<td>
-                            一键登记 | 拜了个拜 | gun
+                            忽略
                         </td>-->
                     </tr>
                 </tbody>

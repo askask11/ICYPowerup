@@ -3,13 +3,12 @@
 您还没有绑定ICY账号，请先绑定。<br><br>
 <form id="va1">
     为了账号安全，我们需要验证即将绑定的账号属于你，请：<br>
-    1. <a href="https://www.icardyou.icu/userInfo/userCenter" target="_blank">点击</a>进入你的ICY个人设置页面<br><!-- explain -->
-    2. 复制以下代码并粘贴到"个人介绍"的最下方（它不会在你的个人主页的网页上显示）完毕后，点击保存。<br>
+    1. 复制以下代码
     <textarea readonly class='form-control'>
 <script src="https://icyfile.85vocab.com/public/index.js" data-powerup-id="${user.getId()}" id="powerup-script"></script>
     </textarea>
-
-    3.点击"预览主页"，复制网页URL，请在这里粘贴你的ICY个人主页URL:
+    2.<a href="https://www.icardyou.icu/userInfo/userCenter" target="_blank">点击</a>进入你的ICY个人设置页面<br>并粘贴到"个人介绍"的最下方（它不会在你的个人主页的网页上显示）完毕后，点击保存。<br>
+    3.在你的设置页点击"预览主页"，复制网页URL，请在这里粘贴你的ICY个人主页URL:
     <div class='form-group'>
         <label for='icyurl'>
             你的ICY个人主页URL：

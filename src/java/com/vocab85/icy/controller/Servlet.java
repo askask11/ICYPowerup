@@ -8,7 +8,10 @@ package com.vocab85.icy.controller;
 import cn.hutool.captcha.AbstractCaptcha;
 import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.ShearCaptcha;
+import cn.hutool.core.date.DateField;
+import cn.hutool.core.date.DateTime;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.lang.Validator;
 import cn.hutool.core.net.multipart.MultipartFormData;
 import cn.hutool.core.net.multipart.UploadFile;
 import cn.hutool.core.thread.ThreadUtil;
@@ -23,9 +26,10 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.aliyun.oss.OSSException;
 import com.aliyun.oss.model.OSSObject;
+import com.vocab85.icy.model.CrawlUnregisteredPostcardTask;
 import com.vocab85.icy.model.ICYPostcard;
-import com.vocab85.icy.model.LongTask;
 import com.vocab85.icy.model.MailUtilBetter;
+import com.vocab85.icy.model.UnregisteredPostcardList;
 import com.vocab85.icy.model.User;
 import com.vocab85.icy.model.UserFavouriteItem;
 import com.vocab85.icy.network.AliOSS;
@@ -53,7 +57,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import static com.vocab85.icy.network.AliOSS.logError;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -66,13 +69,14 @@ import java.util.List;
     "/SavePluginSettings", "/UpFile", "/GetTimeout", "/DeleteFile", "/DeregisterICY",
     "/SearchCards", "/Captcha", "/SearchId", "/RegisterExpiredCards", "/Hacks", "/Hacks2",
     "/Register", "/Register2", "/ChangePassword", "/ChangeUsername", "/ChangeEmail", "/PasswordRecovery", "/PasswordRecovery2", "/PasswordRecovery3",
-    "/GetFavourite", "/UploadICYPhoto", "/AddFavouriteUser","/GetUnregisteredCards","/TestIdle","/TestIdle2"
+    "/GetFavourite", "/UploadICYPhoto", "/AddFavouriteUser", "/GetUnregisteredCards", "/TestIdle", "/TestIdle2", "/SubmitUnregisteredCardTask",
+    "/ClearAllUnregistedCard", "/CancelCrawlUC", "/ForgetCrawlCard", "/GuessCardType", "/r/*", "/r", "/CreateRedirect",
+    "/ReportAbusePowerup"
 })
 public class Servlet extends HttpServlet
 {
 
     private static Driver registeredDriver;
-    private static final List<LongTask> tasks = new ArrayList<>();
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -96,7 +100,9 @@ public class Servlet extends HttpServlet
             out.println("<title>Servlet Servlet</title>");
             out.println("</head>");
             out.println("<body>");
-            out.println("<h1>You might be in a wrong place at " + request.getContextPath() + "</h1>");
+            out.println("<h1>You might be in a wrong place at " + request.getContextPath() + "</h1>"
+                    + "You are in " + request.getServletPath() + ""
+                    + "Requested path info " + request.getPathInfo());
             out.println("</body>");
             out.println("</html>");
         }
@@ -116,8 +122,10 @@ public class Servlet extends HttpServlet
             throws ServletException, IOException
     {
         String path = request.getServletPath();
+
         switch (path)
         {
+            case "/":
             case "/index":
             case "/login":
             case "/PasswordRecovery":
@@ -160,12 +168,35 @@ public class Servlet extends HttpServlet
             case "/GetUnregisteredCards":
                 processGetUnregisteredCardsGET(request, response);
                 break;
-            case "/TestIdle":
-                processTestIdleGET(request, response);
+            case "/SubmitUnregisteredCardTask":
+                processSubmitUnregisteredCardTask(request, response);
                 break;
-            case "/TestIdle2":
-                processTestIdle2GET(request,response);
+            case "/ClearAllUnregistedCard":
+                ICYPostcard.USERCRAWL_CACHE.clear();
+                response.getWriter().write("OK");
                 break;
+            case "/CancelCrawlUC":
+                processCancelCrawlUCGET(request, response);
+                break;
+            case "/ForgetCrawlCard":
+                processForgetCrawlCardGET(request, response);
+                break;
+            case "/GuessCardType":
+                processGuessCardTypeGET(request, response);
+                break;
+            case "/r":
+                processRedirectGET(request, response);
+                //response.getWriter().write("You are fine!" + request.getPathInfo());
+                break;
+            case "/ReportAbusePowerup":
+                processReportAbusePowerupGET(request, response);
+
+            //case "/TestIdle":
+            //  processTestIdleGET(request, response);
+            //break;
+            //case "/TestIdle2":
+            //processTestIdle2GET(request,response);
+            //  break;
             default:
                 processRequest(request, response);
                 break;
@@ -244,6 +275,9 @@ public class Servlet extends HttpServlet
             case "/UploadICYPhoto":
                 processUploadICYPhotoPOST(request, response);
                 break;
+            case "/CreateRedirect":
+                processCreateRedirectPOST(request, response);
+                break;
             default:
                 processRequest(request, response);
                 break;
@@ -258,7 +292,7 @@ public class Servlet extends HttpServlet
     @Override
     public String getServletInfo()
     {
-        return "Short description";
+        return "The central controller of ICY Powerup.";
     }
 
     @Override
@@ -295,6 +329,135 @@ public class Servlet extends HttpServlet
         }
     }
 // </editor-fold>
+
+    protected void processReportAbusePowerupGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        ///receive params from the frontend and pass it to the db
+        String powerupIdStr = request.getParameter("powerupId");
+        String icyIdStr = request.getParameter("icyId");
+        JSONObject jsonr = JSONUtil.createObj();
+        int powerupId;
+        int icyId;
+
+        try (PrintWriter pw = response.getWriter())
+        {
+            //parse id into int and check for valid id (no string, etc.)
+            try(DBAccess dba = DBAccess.getDefaultInstance())
+            {
+                powerupId = Integer.parseInt(powerupIdStr);
+                icyId = Integer.parseInt(icyIdStr);
+                dba.insertIntoReportRecord(powerupId, icyId, new DateTime().toString());
+                processOK(jsonr, dba, response);
+            } catch (NumberFormatException e)
+            {
+                processNumberFormatException(jsonr, e, response);
+            } catch (SQLException sqle)
+            {
+                processSQLException(jsonr, sqle, response);
+            }
+            jsonr.write(pw);
+            
+        }
+
+    }
+
+    protected void processCreateRedirectPOST(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        String destURL = request.getParameter("destURL");
+        String key = (String) request.getSession().getAttribute("createRedirect");
+        HttpSession session = request.getSession();
+        String msg = null;
+        String msgen = null;
+        boolean showRet = true;
+        if (StrUtil.isEmpty(key))
+        {
+            msg = "会话已过期，请重新扫码或点击返回。";
+            msgen = "Session expired. Please scan the QR Code again.";
+        } else if (StrUtil.isEmpty(destURL))
+        {
+            msg = "请输入一个URL";
+            msgen = "Please enter a URL.";
+        } else if (!Validator.isUrl(destURL.trim()))
+        {
+            msg = "请输入一个符合格式的URL";
+            msgen = "Please enter a valid URL.";
+        } else
+        {
+            try (DBAccess dba = DBAccess.getDefaultInstance())
+            {
+                dba.updateRedirectRecord(key, destURL.trim());
+                msg = "<strong style=\"color:green;\">激活成功！</strong>";
+                msgen = "<strong style=\"color:green;\">QR Code Activated!</strong>";
+                showRet = false;
+            } catch (Exception e)
+            {
+                msg = "激活失败，原因" + e.toString();
+                msgen = "Failed to activate QR Code due to " + e.toString();
+            }
+
+        }
+        session.setAttribute("message", msg);
+        session.setAttribute("message_en", msgen);
+        session.setAttribute("showReturn", showRet);
+        request.getRequestDispatcher("/WEB-INF/CreateRedirectResult.jsp").forward(request, response);
+
+    }
+
+    /**
+     * Process the request to redirect user.
+     *
+     * @param request
+     * @param response
+     * @throws ServletException
+     * @throws IOException
+     */
+    protected void processRedirectGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+        String hash = request.getPathInfo();
+        //check for path info
+        if (StrUtil.isEmpty(hash))
+        {
+            session.setAttribute("message", "该链接不存在");
+            session.setAttribute("showReturn", false);
+            response.setStatus(404);
+            request.getRequestDispatcher("/WEB-INF/CreateRedirectResult.jsp").forward(request, response);
+            return;
+        }
+        hash = hash.replace("/", "");
+        String destURL = null;
+        try (DBAccess dba = DBAccess.getDefaultInstance())
+        {
+            destURL = dba.getRedirectLink(hash);
+            //the request key doesn't exist.
+            if (destURL == null)
+            {
+                session.setAttribute("message", "该链接不存在");
+                session.setAttribute("showReturn", false);
+                response.setStatus(404);
+                request.getRequestDispatcher("/WEB-INF/CreateRedirectResult.jsp").forward(request, response);
+                return;
+
+            }
+
+            //the requested key exists, but there is no destination url set.
+            if (destURL.isEmpty())
+            {
+
+                //send to register page
+                request.getSession().setAttribute("createRedirect", hash);
+                request.getRequestDispatcher("/WEB-INF/CreateRedirect.jsp").forward(request, response);
+                return;
+            }
+
+            //request has set a destination URL.
+            response.sendRedirect(destURL);
+
+        } catch (Exception e)
+        {
+            AliOSS.logError(e);
+        }
+    }
 
     protected void processAddFavouriteUserGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
@@ -1101,11 +1264,18 @@ public class Servlet extends HttpServlet
                     user = db.getUser(username, password);
                 }
 
+                //check if the login is successful
                 if (user == null)
                 {
                     processStatus(retJSON, "DNE", "NoSuchUser", 400, response);
+                    retJSON.write(writer);
                 } else
                 {
+                    session.setAttribute("user", user);
+                    processOK(retJSON, "", response);
+                    retJSON.write(writer);
+                    System.out.println("ok");
+
                     //remember user
                     if (StrUtil.equals(remember, "true"))
                     {
@@ -1114,15 +1284,16 @@ public class Servlet extends HttpServlet
                         db.setUserToken(user.getId(), token);
                     }
 
-                    processOK(retJSON, "", response);
-                    session.setAttribute("user", user);
+                    db.insertUserLoginRecord(user.getId(), DateTime.now().toString());
+
                 }
 
             } catch (SQLException sqle)
             {
                 processSQLException(retJSON, sqle, response);
+                retJSON.write(writer);
             }
-            retJSON.write(writer);//return the final data.
+            //retJSON.write(writer);//return the final data.
         }
 
     }
@@ -1419,37 +1590,252 @@ public class Servlet extends HttpServlet
 
     }
 
-    public void processGetUnregisteredCardsGET(HttpServletRequest request, HttpServletResponse response)throws ServletException, IOException
+    private UnregisteredPostcardList isUserHasUnregisteredPostcardCache(int icyid)
+    {
+        List<UnregisteredPostcardList> totalList = ICYPostcard.USERCRAWL_CACHE;
+        for (UnregisteredPostcardList unregisteredPostcardList : totalList)
+        {
+            if (unregisteredPostcardList.getIcyId() == icyid)
+            {
+                return unregisteredPostcardList;
+            }
+        }
+        return null;
+    }
+
+    private CrawlUnregisteredPostcardTask getUserUnregisteredTask(int icyid)
+    {
+        List<CrawlUnregisteredPostcardTask> tasks = ICYPostcard.CRAWLREG_TASKS;
+        for (CrawlUnregisteredPostcardTask task : tasks)
+        {
+            if (task.getIcyId() == icyid)
+            {
+                return task;
+            }
+        }
+        return null;
+    }
+
+    public void processGetUnregisteredCardsGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
     {
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");
+        String progressOnly = request.getParameter("progressOnly");
+
         //String icyid = user.getIcyid();
         JSONObject jsonr = JSONUtil.createObj();
+        response.setContentType("application/json;charset=utf-8");
         try (PrintWriter pw = response.getWriter())
         {
+            if (user == null)
+            {
+                processNoLogin(jsonr, response);
+                jsonr.write(pw);
+                pw.flush();
+                pw.close();
+                return;
+            }
+
             String icyIdStr = user.getIcyid();
-            if(StrUtil.isEmpty(icyIdStr))
+            if (StrUtil.isEmpty(icyIdStr))
             {
                 processNoParam(jsonr, response);
                 jsonr.write(pw);
                 return;
             }
-            //Crawl id
-            try
+            //If User has generated a report already.
+
+            if (StrUtil.isEmpty(progressOnly))
             {
-                List<ICYPostcard> cards = ICYWebCommunicator.getUserPostcardsNotReceived(Integer.parseInt(icyIdStr));
-                //jsonr.set("data", cards);
-                processOK(jsonr, cards, response);
-            } catch (Exception e)
+                UnregisteredPostcardList cache = isUserHasUnregisteredPostcardCache(Integer.parseInt(icyIdStr));
+                if (cache == null)
+                {
+                    processOK(jsonr, JSONUtil.createArray(), response);
+                } else
+                {
+                    processOK(jsonr, JSONUtil.parseArray(cache), response);
+                    jsonr.set("time", cache.getCrawlTime().toString("yyyy-MM-dd HH:mm"));
+                }
+            } else
             {
-                processSQLException(jsonr, e, response);
-                logError(e);
+                processOK(jsonr, JSONUtil.createArray(), response);
             }
+
+            CrawlUnregisteredPostcardTask task = getUserUnregisteredTask(Integer.parseInt(icyIdStr));
+            if (task != null)
+            {
+                jsonr.set("task", JSONUtil.parseObj(task));
+                //j/sonr.set("lastCrewTime", tas)
+            }
+
             jsonr.write(pw);
         }
     }
+
+    public void processGuessCardTypeGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        int sequence = Integer.parseInt(request.getParameter("cardSequence"));
+        int sender = Integer.parseInt(request.getParameter("sender"));
+        int receiver = Integer.parseInt(request.getParameter("receiver"));
+        //String icyid = user.getIcyid();
+        JSONObject jsonr = JSONUtil.createObj();
+        try (PrintWriter pw = response.getWriter())
+        {
+            if (user == null)
+            {
+                processNoLogin(jsonr, response);
+                jsonr.write(pw);
+                pw.flush();
+                pw.close();
+                return;
+            }
+
+            try (DBAccess dba = DBAccess.getDefaultInstance())
+            {
+                String upperGuess = dba.getPostcardIdBySenderReceiverSq(sequence + 1, receiver, sender);
+                String lowerGuess = dba.getPostcardIdBySenderReceiverSq(sequence - 1, receiver, sender);
+                JSONObject guesses = JSONUtil.createObj();
+                guesses.set("upperGuess", upperGuess);
+                guesses.set("lowerGuess", lowerGuess);
+                processOK(jsonr, guesses, response);
+            } catch (Exception e)
+            {
+                processSQLException(jsonr, e, response);
+            }
+
+            jsonr.write(pw);
+        }
+    }
+
+    public void processSubmitUnregisteredCardTask(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+
+        //String icyid = user.getIcyid();
+        JSONObject jsonr = JSONUtil.createObj();
+        try (PrintWriter pw = response.getWriter())
+        {
+            if (user == null)
+            {
+                processNoLogin(jsonr, response);
+                jsonr.write(pw);
+                pw.flush();
+                pw.close();
+                return;
+            }
+            String icyIdStr = user.getIcyid();
+            int icyId = Integer.parseInt(icyIdStr);
+
+            //频繁检查，若用户有超级权限则跳过。Frequency Check
+            if (!user.isHacks())
+            {
+                UnregisteredPostcardList li = isUserHasUnregisteredPostcardCache(icyId);
+                if (li != null)
+                {
+                    DateTime lastTime = (DateTime) li.getCrawlTime().clone();
+                    DateTime now = DateTime.now();
+                    //每个用户每30分钟只能爬一次
+                    if (now.isBefore(lastTime.setField(DateField.MINUTE, lastTime.getField(DateField.MINUTE) + 30)))
+                    {
+                        processStatus(jsonr, "", "TooFrequent", 403, response);
+                        jsonr.write(pw);
+                        pw.close();
+                        return;
+                    }
+                }
+            }
+
+            CrawlUnregisteredPostcardTask task = getUserUnregisteredTask(icyId);
+            if (task == null)
+            {
+                task = new CrawlUnregisteredPostcardTask(user.getId(), icyId);
+                ThreadUtil.execAsync(task);
+                processOK(jsonr, JSONUtil.parseObj(task), response);
+            } else
+            {
+                processStatus(jsonr, JSONUtil.parseObj(task), "HasTask", 403, response);
+            }
+            jsonr.write(pw);
+
+        }
+    }
+
+    public void processCancelCrawlUCGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        JSONObject jsonr = JSONUtil.createObj();
+
+        try (PrintWriter pw = response.getWriter())
+        {
+            if (user == null)
+            {
+                processNoLogin(jsonr, response);
+                jsonr.write(pw);
+                return;
+            }
+            //Cancel task in accordance to icyid.
+            int icyId = Integer.parseInt(user.getIcyid());
+            CrawlUnregisteredPostcardTask t = getUserUnregisteredTask(icyId);
+            if (t == null)
+            {
+                processStatus(jsonr, t, "TaskNotFound", 404, response);
+
+            } else
+            {
+                t.setHalt(true);
+                processOK(jsonr, "", response);
+
+            }
+
+            jsonr.write(pw);
+
+        }
+    }
+
+    public void processForgetCrawlCardGET(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+    {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        JSONObject jsonr = JSONUtil.createObj();
+        String pcId = request.getParameter("pcid");
+
+        try (PrintWriter pw = response.getWriter())
+        {
+            if (user == null)
+            {
+                processNoLogin(jsonr, response);
+                jsonr.write(pw);
+                return;
+            }
+            if (StrUtil.isEmpty(pcId))
+            {
+                processNoParam(jsonr, response);
+                jsonr.write(pw);
+                return;
+            }
+            int icyId = Integer.parseInt(user.getIcyid());
+            UnregisteredPostcardList cl = isUserHasUnregisteredPostcardCache(icyId);
+            int s = cl.size();
+            for (int i = 0; i < s; i++)
+            {
+                if (StrUtil.equals(cl.get(i).getCardId(), pcId))
+                {
+                    cl.remove(i);
+                    break;
+                }
+            }
+
+            processOK(jsonr, "", response);
+            jsonr.write(pw);
+        }
+    }
+
     //Future<?> f;
-    
+    /*
     private boolean ifIdEx(String id)
     {
         return tasks.stream().anyMatch(task -> (task.getTaskId().equals(id)));
@@ -1495,7 +1881,7 @@ public class Servlet extends HttpServlet
     {
         jsonr.set("code", code);
         jsonr.set("data", data);
-        response.setContentType("application/json");
+        response.setContentType("application/json;charset=utf-8");
         response.setCharacterEncoding("UTF-8");
         //response.setStatus(status);
         //response.setHeader("Access-Control-Allow-Origin", "*");

@@ -1,0 +1,81 @@
+[
+    {
+        "id": "bigTitle",
+        "langs": {
+            "zh": "激活二维码",
+            "en": "Activate QR Code"
+        }
+    },
+    {
+        "id": "intro1",
+        "langs": {
+            "zh": "在这里确认激活后，下次扫描此二维码时将直接重定向至您在下面输入的URL或照片等文件。",
+            "en": "After activation, scanning this QR code will take you to the URL or the file you indicated."
+        }
+    },
+    {
+        "id": "navtag1",
+        "langs": {
+            "zh": "通过链接分享",
+            "en": "Share with URL"
+        }
+    },
+    {
+        "id": "navtag2",
+        "langs": {
+            "zh": "上传文件分享",
+            "en": "Share with file"
+        }
+    },
+    {
+        "id": "introLink",
+        "langs": {
+            "zh": "在明信片上分享音乐，电视剧，番剧？直接在网易云、Bilibili、QQ音乐等平台上选择以链接分享，然后将分享链接粘贴到这里即可！",
+            "en": "Sharing Youtube videos or other musics? Copy your sharelink from there and paste it below:)"
+        }
+    },
+    {
+        "id": "submit",
+        "langs": {
+            "zh": "确认",
+            "en": "Submit"
+        }
+    },
+    {
+        "id": "shareFileIntro",
+        "langs": {
+            "zh": "想要分享自己的照片、视频和其它文件？请直接在这里上传（文件大小<50MB)",
+            "en": "Upload your own photo and video here. (File size limit 50MB)"
+        }
+    },
+    {
+        "id": "shareFileLabel",
+        "langs": {
+            "zh": "上传本地照片、视频. (请勿上传违法违规文件，否则后果自负）",
+            "en": "Upload files from local device. (We are not responsible for the file you've uploaded) "
+        }
+    },
+    {
+        "id": "uploadBtn",
+        "langs": {
+            "zh": "上传并提交",
+            "en": "Upload and Submit"
+        }
+    },
+    {
+        "id": "urlFieldLabel",
+        "langs": {
+            "zh": "请输入一个有效的URL",
+            "en": "Please enter a valid URL."
+        }
+    },
+    {
+        "id": "urlField",
+        "attr": {
+            "placeholder": {
+                "zh": "在这里输入目的URL",
+                "en": "Enter destination URL. "
+            }
+        }
+    }
+]

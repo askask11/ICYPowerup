@@ -6,6 +6,8 @@
 package com.vocab85.icy.model;
 
 import cn.hutool.http.HttpUtil;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 import lombok.Data;
 import org.jsoup.Jsoup;
@@ -21,6 +23,8 @@ import org.jsoup.select.Elements;
 public class ICYPostcard
 {
 
+    public static final List<CrawlUnregisteredPostcardTask> CRAWLREG_TASKS = new ArrayList<>();
+    public static final List<UnregisteredPostcardList> USERCRAWL_CACHE = new ArrayList<>();
     private int sequence;
     private String cardId;
     private int senderId;
@@ -29,6 +33,7 @@ public class ICYPostcard
     private String sentTime;
     private String[] picURL;
     private String senderName;
+    //private String cardType;
     public static final int PCSTATUS_NOT_SENT = 0, PCSTATUS_SENT = 1, PCSTATUS_RECEIVED = 2, PCSTATUS_EXPIRED = 3;
 
     //static methods

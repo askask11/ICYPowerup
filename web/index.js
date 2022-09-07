@@ -1,5 +1,5 @@
 /* 
- * Author: jianqing
+ * Author: Johnson @ ICY
  * Date: May 13, 2021
  * Description: This document is created for index.js
  */
@@ -23,14 +23,14 @@
         link.rel = "stylesheet";
         link.type = "text/css";
         link.href = "https://icyfile.85vocab.com/public/flowers/SnowFlake.css";
-        $("head")[0].appendChild(link)
+        $("head")[0].appendChild(link);
         //set attribute for the parent div which to hold all image divs
-        snowflakes.classList.add("snowflakes")
-        snowflakes.setAttribute("aria-hidden", "true")
+        snowflakes.classList.add("snowflakes");
+        snowflakes.setAttribute("aria-hidden", "true");
         for (var i = 0, maxi = iconset.length; i < maxi; i++)
         {
             var imageObj = iconset[i] // get the object of the image from image array
-            if(imageObj["render"]===false)
+            if (imageObj["render"] === false)
             {
                 continue;
             }
@@ -46,8 +46,18 @@
             imageDivDOM.appendChild(imageDOM); // put the image DOM inside of the image div
             snowflakes.appendChild(imageDivDOM); // append the imageDivDOM into the parent div
         }
-        $("body")[0].appendChild(snowflakes)
+        $("body")[0].appendChild(snowflakes);
         //版权声明，请勿去除。
+
+        //增加隐藏特效按钮
+
+        var btnGroup = document.getElementsByClassName("buttons")[0];
+        var hideEffectBtn = document.createElement("a");
+        hideEffectBtn.id = "hideEffectBtn";
+        hideEffectBtn.innerHTML = "隐藏特效";
+        hideEffectBtn.href = "javascript:hideEffect()";
+        btnGroup.appendChild(hideEffectBtn);
+
         console.log("萌花飘飘插件，Johnson 制作，https://www.icardyou.icu/userInfo/homePage?userId=32364")
     }
 
@@ -70,7 +80,7 @@
         {
             if (w !== undefined || w !== "")
             {
-                img.style.setProperty("width",w+"px");
+                img.style.setProperty("width", w + "px");
             }
         }
         const IMAGE_CLASS_NAME = "je";
@@ -82,15 +92,15 @@
         //being represented by a child.
         const userintohtml = $(".text-info")[1].innerHTML
         var diff = 0;
-        
+
         //Get the user registeration date/amount of cards sent.
         const date = userinfo[0].innerHTML
         const sendcard = userinfo[1].innerHTML
-        
+
         //Determine if the user has a "success rate".  Note: Users who send less than 20 cards will not have their stats generated.
         //Which, will cause the parent container "text-info" to shrink in size.
         // The following part takes account of the issue.
-        
+
         if (userintohtml.includes("成功率"))
         {
             //获取 "纯数字" 成功率
@@ -252,36 +262,44 @@
         root_table.appendChild(col2)
         root_table.appendChild(col3)
         root_table.appendChild(col4)
+        root_table.id = "statTable";
         $("head")[0].appendChild(style_ele)
+
+        var originalText = $(".text-info")[1].innerHTML;
+        var backUpEle = document.createElement("div");
+        backUpEle.style.display = "none";
+        backUpEle.innerHTML = originalText;
+        backUpEle.id = "pureTextStat";
         $(".text-info")[1].innerHTML = "";
         $(".text-info")[1].appendChild(root_table);
+        $(".text-info")[1].appendChild(backUpEle);
     }
 
-    function initAutoRegisteration(data,userId)
+    function initAutoRegisteration(data, userId)
     {
-        if(data===undefined||!data["render"])
+        if (data === undefined || !data["render"])
         {
             return;
         }
-       
+
         var s = document.createElement("script");
-        s.src="https://icyfile.85vocab.com/public/AutoRegister.js";
-        s.setAttribute("data-powerupid",userId);
-        
+        s.src = "https://icyfile.85vocab.com/public/AutoRegister.js";
+        s.setAttribute("data-powerupid", userId);
+
         $("head")[0].appendChild(s);
-     
+
     }
-    
+
     function initICYLottery(data)
     {
-        if(!data["render"])
+        if (!data["render"])
         {
             return;
         }
-        
+
         //load the script.
         var s = document.createElement("script");
-        s.src="https://icyfile.85vocab.com/public/ICYDecider.js";
+        s.src = "https://icyfile.85vocab.com/public/ICYDecider.js";
         document.getElementsByTagName("head")[0].appendChild(s);
     }
     ////////////////////////////MAIN MASTER//////////////////////////
@@ -309,7 +327,7 @@
                     initProfile(plugins[pluginname]);
                     break;
                 case "autoRegister":
-                    initAutoRegisteration(plugins[pluginname],userid);
+                    initAutoRegisteration(plugins[pluginname], userid);
                     break;
                 case "icylottery":
                     initICYLottery(plugins[pluginname]);
@@ -328,3 +346,61 @@
 
 
 })(document.currentScript);
+
+function hideEffect()
+{
+    $(".snowflakes").hide();
+    alert("再按一次隐藏收发数据显示");
+    var b = document.getElementById("hideEffectBtn");
+    var t = b.innerHTML;
+    if (t !== "隐藏特效")
+    {
+
+        $("#statTable").fadeOut("slow", () => {
+            $("#pureTextStat").fadeIn("slow");
+        });
+        alert("数据显示已重置，如发现违规使用插件请站内信Johnson.");
+        $("#hideEffectBtn").html("检举违规使用特效");
+        b.href = "javascript:reportAbusePowerup();";
+        return;
+    }
+    b.innerHTML = "重置收发数据显示";
+
+}
+
+function reportAbusePowerup()
+{
+    var xhr = new XMLHttpRequest();
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    var powerUpId = 0;
+    try{
+        powerUpId = document.getElementById("powerup-script").getAttribute("data-powerup-id");
+    }catch (exception) {
+        console.log(exception);
+    }
+
+    xhr.open("GET","icy.85vocab.com/ReportAbusePowerup?powerupId=" + powerUpId + "&icyId=" + userId);
+   xhr.onreadystatechange = function (e) {
+        if(xhr.readyState === 4 && xhr.status === 200)
+        {
+            alert("举报成功，感谢您的贡献！");
+            $("#hideEffectBtn").html("已举报该用户");
+            $("#hideEffectBtn").attr({"href":"#"});
+        }else if(xhr.readyState === 4)
+        {
+            alert("抱歉，举报失败，请站内信Johnson解决");
+            $("#hideEffectBtn").html("请站内信Johnson");
+            $("#hideEffectBtn").attr({"href":"https://www.icardyou.icu/userInfo/homePage?userId=32364"});
+        }
+    };
+    
+    xhr.onerror = function () {
+         alert("抱歉，举报失败，请站内信Johnson解决");
+            $("#hideEffectBtn").html("请站内信Johnson");
+            $("#hideEffectBtn").attr({"href":"https://www.icardyou.icu/userInfo/homePage?userId=32364"});
+        
+    };
+    xhr.send();
+}
+

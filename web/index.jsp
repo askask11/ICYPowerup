@@ -26,7 +26,7 @@ Description: This document is created for index page
             {
                 background-color: rgba(255,255,255,0.85);
             }
-            
+
         </style>
         ${user==null?"":"<meta http-equiv='refresh' content='0; url=ManagePanel'>"}
     </head>
@@ -40,7 +40,7 @@ Description: This document is created for index page
             <h1>ICY Powerup</h1>
             <br>
             <br>
-            <button type="button" style="width:50%; margin:auto;" class="btn btn-outline-primary btn-block" onclick="window.location='login.jsp'">开始使用</button>
+            <button type="button" style="width:50%; margin:auto;" class="btn btn-outline-primary btn-block" onclick="window.location = 'login.jsp'">开始使用</button>
             <br><br>
         </div>
         <br>
@@ -51,7 +51,7 @@ Description: This document is created for index page
                     什么是ICY Powerup，能做什么？
                 </h4>
                 <p>
-                    ICY Powerup 是一个第三方平台，为大家免费提供了一些可以在ICY网站使用的额外功能~
+                    ICY Powerup 为大家免费提供了一些可以在ICY网站使用的额外功能~ （非商用）
                     比如主页飘下雪花，自定义的主页，一键防重，过期自助补登. 目前正在测试阶段，注册账号即可参与测试哦！<br><!-- comment -->
                     更重要的是，你<strong>不需要任何编程技术！</strong><br><!-- comment -->
                     就算你是电脑白痴，你也会感觉像技术
@@ -64,7 +64,7 @@ Description: This document is created for index page
                     ICY Powerup 安全吗？
                 </h4>
                 <p>
-                    ICY Powerup 采用行业标准加密技术对您的信息加密，我们不会主动泄密, 请放心。<br>
+                    ICY Powerup 链接加密, 请放心。<br>
                 </p>
             </section>
 
@@ -95,5 +95,14 @@ Description: This document is created for index page
                 <script src="js/autologin.js"></script>
             </c:if>
         </div>
+
+        <br><br><br>
+        <footer class="text-center footer translucent">
+            <small style="bottom: 0;">
+                声明：此网站是Johnson为了方便大家管理活动自研的网站，不收集关于ICY账户的任何其它信息。ICY官方和本网站并无合作关系。背景图片来源网络，侵删。<br><!-- comment -->
+                Johnson 制作， © ICY Johnson 2022 <a href="http://beian.miit.gov.cn">粤ICP备2022076116号</a> <a href="https://szr.85vocab.com">深圳容缘信息咨询有限公司</a>
+            </small> 
+
+        </footer>
     </body>
 </html>
