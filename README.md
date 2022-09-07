@@ -20,7 +20,8 @@ https://www.icardyou.icu/userInfo/homePage?userId=32364
 
 Sample client (excluding the font and color):
 https://www.icardyou.icu/userInfo/homePage?userId=38736
-<img width="1655" alt="image" src="https://user-images.githubusercontent.com/63438758/188956608-464e2bcd-fa29-4d91-8467-6c236efffd4f.png">
+<img width="1651" alt="image" src="https://user-images.githubusercontent.com/63438758/188956859-f318f885-6e44-4173-9db7-201020fa1254.png">
+
 
 
 # Functions
