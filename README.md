@@ -14,8 +14,13 @@ This application is intended for clients from icardyou.icu with no computer prog
 3. Ready to go
 
 Sample:
+https://www.icardyou.icu/userInfo/homePage?userId=32364
 <img width="1650" alt="image" src="https://user-images.githubusercontent.com/63438758/188956392-3d47dafb-7b06-4178-9bad-6bdf008a7693.png">
 <img width="1005" alt="image" src="https://user-images.githubusercontent.com/63438758/188956457-a1de5a66-a30f-49f4-8869-f1b0d06fb984.png">
+
+Sample client (excluding the font and color):
+https://www.icardyou.icu/userInfo/homePage?userId=38736
+<img width="1655" alt="image" src="https://user-images.githubusercontent.com/63438758/188956608-464e2bcd-fa29-4d91-8467-6c236efffd4f.png">
 
 
 # Functions
