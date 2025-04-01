@@ -1,6 +1,7 @@
 # ICYPowerup
-提供一些实用又酷炫的额外ICY功能
-Postcard searching, homepage codeless decoration.
+提供一些实用又酷炫的额外ICY功能.
+网址：https://icytools.cn \
+Postcard searching, homepage decoration.
 
 This application works by giving a piece of injection script that user copies into their homepage on another platform(icardyou.icu). After user copies that script, they can control the apperance of their homepage by logging on the control panel, and there is no need to directly code on their homepage.
 This app also allows user to enable auto postcard registeration on their homepage, solving the problem of unable to register expired postcards.
